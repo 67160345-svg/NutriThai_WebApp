@@ -1,0 +1,156 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=Sarabun:wght@300;400;500;600;700;800&display=swap');
+@import 'tailwindcss';
+
+:root {
+  --ink: #1a2820;
+  --ink-muted: #596c5c;
+  --ink-soft: #718078;
+  --surface: #ffffff;
+  --surface-soft: #f8f5ef;
+  --line: #e5e2da;
+  --brand: #2d6e3e;
+  --brand-deep: #245a33;
+  --accent: #d97706;
+  --danger: #9d302b;
+  --info: #4f84a8;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: "Sarabun", "Nunito", sans-serif;
+  background: var(--surface-soft);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 3px solid rgba(45, 110, 62, 0.4);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: rgba(45, 110, 62, 0.18);
+}
+
+.app-shell {
+  min-height: 100vh;
+  letter-spacing: 0;
+}
+
+.app-shell main > div {
+  animation: page-enter 220ms ease-out both;
+}
+
+.app-shell [class*="bg-[#141c2e"] {
+  background-color: var(--surface) !important;
+}
+
+.app-shell [class*="bg-[#0d1320"] {
+  background-color: rgba(255, 255, 255, 0.96) !important;
+}
+
+.app-shell [class~="text-white"] {
+  color: var(--ink) !important;
+}
+
+.app-shell button[class~="text-white"],
+.app-shell button[class~="text-white"] * {
+  color: #fff !important;
+}
+
+.app-shell [class*="text-slate-"] {
+  color: var(--ink-muted) !important;
+}
+
+.app-shell [class*="border-white"] {
+  border-color: var(--line) !important;
+}
+
+.app-shell [class*="text-emerald-"] {
+  color: var(--brand) !important;
+}
+
+.app-shell [class~="bg-emerald-500"] {
+  background-color: var(--brand) !important;
+}
+
+.app-shell [class*="bg-emerald-500/"] {
+  background-color: #edf4ee !important;
+}
+
+.app-shell [class*="bg-white/"] {
+  background-color: var(--surface-soft) !important;
+}
+
+.app-shell input:not([type="checkbox"]),
+.app-shell select {
+  color: var(--ink) !important;
+  background-color: var(--surface-soft) !important;
+  border-color: var(--line) !important;
+  min-height: 44px;
+}
+
+.app-shell input::placeholder {
+  color: var(--ink-soft) !important;
+}
+
+.app-shell input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--brand);
+}
+
+@keyframes page-enter {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell main > div { animation: none; }
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(45, 110, 62, 0.24) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(45, 110, 62, 0.24);
+  border-radius: 3px;
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+}

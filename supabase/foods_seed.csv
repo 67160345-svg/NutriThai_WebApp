@@ -1,0 +1,16 @@
+id,food_code,name,english_name,category,calories,protein,carbs,fat,sugar,fiber
+1,A1,ข้าวกล้อง หอมมะลิ ดิบ,"Rice, brown, Jasmine variety, raw",food,363,7.3,76.8,3.0,0.3,3.5
+2,A11,ข้าวเจ้าสวย สุก,"Rice, polished, cooked",food,136,2.3,31.1,0.2,0.0,0.4
+3,A121,ผัดหมี่โคราช / ผัดไทย,Stir-fried noodles Thai style,food,480,14.0,65.0,18.0,12.0,2.5
+4,TH01,ข้าวกะเพราหมูกรอบ + ไข่ดาว,Crispy Pork Basil with Fried Egg,food,720,24.0,62.0,42.0,3.5,1.8
+5,TH02,ข้าวมันไก่ต้ม,Hainanese Chicken Rice,food,590,26.0,64.0,25.0,1.0,1.2
+6,TH03,ส้มตำไทย,Papaya Salad (Som Tum),food,125,4.5,24.0,1.5,14.0,3.2
+7,TH04,ต้มยำกุ้งน้ำข้น,Tom Yum Goong,food,210,18.0,12.0,10.0,4.0,1.5
+8,TH05,อกไก่นุ่มย่างพริกไทยดำ,Grilled Chicken Breast,food,180,34.0,2.0,4.0,0.5,0.2
+9,TH06,ก๋วยเตี๋ยวเรือน้ำตกหมู,Pork Boat Noodles,food,380,16.0,52.0,12.0,6.0,2.0
+10,DR01,ชาไทยเย็น นมสด (หวานปกติ),Thai Iced Milk Tea,drink,260,4.0,38.0,10.0,32.0,0.0
+11,DR02,อเมริกาโน่เย็น (ไม่หวาน 0%),Iced Americano (No Sugar),drink,15,0.8,2.0,0.2,0.0,0.0
+12,DR03,มัทฉะลาเต้เย็น หวานน้อย,Iced Matcha Latte (Low Sugar),drink,170,5.0,22.0,7.0,16.0,1.2
+13,DR04,ชานมไข่มุกไต้หวัน,Bubble Milk Tea,drink,360,3.0,62.0,11.0,45.0,0.5
+14,DR05,น้ำผึ้งมะนาวโซดา,Honey Lemon Soda,drink,130,0.2,32.0,0.1,29.0,0.2
+15,DR06,นมถั่วเหลือง น้ำเต้าหู้ ไม่หวาน,Plain Soy Milk (Unsweetened),drink,95,8.0,4.5,5.0,1.0,1.5

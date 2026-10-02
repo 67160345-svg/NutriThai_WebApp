@@ -1,0 +1,39 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.txt
+    container_name: calorie_backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      PORT: "8000"
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_RATE_LIMIT_REQUESTS: ${GEMINI_RATE_LIMIT_REQUESTS:-10}
+      GEMINI_RATE_LIMIT_WINDOW_SECONDS: ${GEMINI_RATE_LIMIT_WINDOW_SECONDS:-3600}
+      SUPABASE_URL: ${SUPABASE_URL:?Set SUPABASE_URL in the root .env file}
+      SUPABASE_PUBLISHABLE_KEY: ${SUPABASE_PUBLISHABLE_KEY:?Set SUPABASE_PUBLISHABLE_KEY in the root .env file}
+      AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-true}
+      FRONTEND_ORIGINS: ${FRONTEND_ORIGINS:-http://localhost:3000,http://localhost:8443,http://127.0.0.1:8443}
+    networks:
+      - app_network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.txt
+      args:
+        VITE_API_BASE_URL: ""
+    container_name: calorie_frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - app_network
+
+networks:
+  app_network:
+    driver: bridge
