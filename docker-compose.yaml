@@ -3,7 +3,6 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile.txt
-    container_name: calorie_backend
     restart: unless-stopped
     ports:
       - "8000:8000"
@@ -25,7 +24,6 @@ services:
       dockerfile: Dockerfile.txt
       args:
         VITE_API_BASE_URL: ""
-    container_name: calorie_frontend
     restart: unless-stopped
     ports:
       - "3000:80"
