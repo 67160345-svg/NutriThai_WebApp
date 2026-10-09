@@ -1,3 +1,4 @@
+import { consumedLabel } from "../lib/portions";
 import { FoodLog, HealthProfile, MealType, Page } from "../types";
 import { getTotals } from "../lib/health";
 import { localDateKey } from "../lib/foodLogs";
@@ -164,7 +165,7 @@ export default function Dashboard({ healthProfile, logs, onRemoveLog, onNavigate
                     <span aria-hidden="true" className="grid h-11 w-11 shrink-0 place-items-center rounded-[14px] bg-[#f3f0ea] text-xl">{log.food.category === "drink" ? "♧" : log.food.category === "dessert" ? "✿" : "♨"}</span>
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-sm font-semibold text-[#1a2820]">{log.food.nameTh}</div>
-                      <div className="text-xs text-[#718078]">{log.servings} ที่ · {Math.round(log.food.calories * log.servings)} kcal</div>
+                      <div className="text-xs text-[#718078]">{consumedLabel(log.food, log.servings)} · {Math.round(log.food.calories * log.servings)} kcal</div>
                     </div>
                     <button type="button" aria-label={`ลบ ${log.food.nameTh}`} onClick={() => onRemoveLog(log.id)} className="grid h-10 w-10 shrink-0 place-items-center rounded-lg text-[#718078] hover:bg-[#fff0ed] hover:text-[#9d302b]">×</button>
                   </div>

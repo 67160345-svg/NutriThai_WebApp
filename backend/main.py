@@ -10,6 +10,8 @@ from collections import OrderedDict, deque
 from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Literal
+from uuid import UUID
+from zoneinfo import ZoneInfo
 from urllib.parse import urlparse, urlencode
 import jwt
 from fastapi import Depends, FastAPI, File, Header, HTTPException, Query, Request, Response, UploadFile
@@ -17,7 +19,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from jwt import PyJWKClient
 from jwt.exceptions import PyJWKClientError, PyJWTError
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
 app = FastAPI(
     title="NutriThai AI API",
@@ -164,12 +166,48 @@ class ProfileRequest(BaseModel):
     goal: Literal["lose_weight", "maintain", "gain_muscle"]
 
 
-class FoodLogRequest(BaseModel):
+class ServingBasis(BaseModel):
+    model_config = ConfigDict(allow_inf_nan=False, str_strip_whitespace=True)
+    serving_size: float = Field(default=1, ge=0.001, le=10000)
+    serving_unit: Literal["portion", "g", "ml"] = "portion"
+    serving_label: str = Field(default="หน่วยเดิม (ไม่ระบุขนาด)", min_length=1, max_length=100)
+    portion_grams: float | None = Field(default=None, ge=0.001, le=10000)
+
+
+class CustomFoodRequest(ServingBasis):
+    name: str = Field(min_length=1, max_length=200)
+    category: Literal["food", "drink", "dessert"] = "food"
+    calories: float = Field(ge=0, le=10000)
+    protein: float = Field(default=0, ge=0, le=1000)
+    carbs: float = Field(default=0, ge=0, le=1000)
+    fat: float = Field(default=0, ge=0, le=1000)
+    sugar: float = Field(default=0, ge=0, le=1000)
+    fiber: float = Field(default=0, ge=0, le=1000)
+
+
+class FoodLogRequest(ServingBasis):
+    custom_food_id: UUID | None = None
+    source: Literal["catalog", "ai", "custom"] = "ai"
+    category: Literal["food", "drink", "dessert"] = "food"
+    quantity: float | None = Field(default=None, gt=0, le=1000000)
+    quantity_unit: Literal["portion", "g", "ml"] | None = None
+    replace_food: bool = False
+
+    @model_validator(mode="after")
+    def check_log(self):
+        if self.food_id is not None and self.custom_food_id is not None:
+            raise ValueError("เลือกอาหารจากแหล่งเดียวเท่านั้น")
+        if (self.quantity is None) != (self.quantity_unit is None):
+            raise ValueError("ต้องระบุปริมาณและหน่วยคู่กัน")
+        if self.meal_date > datetime.now(ZoneInfo("Asia/Bangkok")).date():
+            raise ValueError("ไม่สามารถบันทึกวันที่ในอนาคต")
+        return self
+
     food_id: int | None = Field(default=None, ge=1)
     food_name: str = Field(min_length=1, max_length=200)
     food_name_th: str | None = Field(default=None, max_length=200)
     meal_type: Literal["breakfast", "lunch", "dinner", "snack"]
-    servings: float = Field(gt=0, le=100)
+    servings: float = Field(ge=0.001, le=100)
     calories_per_serving: float = Field(ge=0, le=10000)
     protein_per_serving: float = Field(default=0, ge=0, le=1000)
     carbs_per_serving: float = Field(default=0, ge=0, le=1000)
@@ -181,7 +219,7 @@ class FoodLogRequest(BaseModel):
 
 
 class ServingsRequest(BaseModel):
-    servings: float = Field(gt=0, le=100)
+    servings: float = Field(ge=0.001, le=100)
 
 
 def _authenticated_user(authorization: str | None) -> AuthenticatedUser:
@@ -330,7 +368,7 @@ def calculate_health_metrics(gender: str, weight: float, height: float, age: int
 
 
 def _food_log_select():
-    return "id,food_id,source,food_name,food_name_th,meal_type,servings,calories_per_serving,protein_per_serving,carbs_per_serving,fat_per_serving,sugar_per_serving,fiber_per_serving,meal_date,logged_at"
+    return "id,food_id,custom_food_id,source,category,food_name,food_name_th,meal_type,servings,serving_size,serving_unit,serving_label,portion_grams,calories_per_serving,protein_per_serving,carbs_per_serving,fat_per_serving,sugar_per_serving,fiber_per_serving,meal_date,logged_at"
 
 
 def has_valid_image_signature(content_type: str, image: bytes) -> bool:
@@ -538,48 +576,63 @@ def save_profile(
 def get_foods(
     search: str | None = Query(default=None, max_length=100),
     category: Literal["food", "drink", "dessert"] | None = None,
-    limit: int = Query(default=8, ge=1, le=50),
+    limit: int | None = Query(default=None, ge=1, le=50),
 ):
     if search is not None and search.strip():
-        return _supabase_request(
-            "/rest/v1/rpc/search_foods",
-            "POST",
-            body={
-                "search_query": search.strip(),
-                "result_limit": limit,
-                "category_filter": category,
-            },
-        )
+        try:
+            return _supabase_request(
+                "/rest/v1/rpc/search_foods", "POST",
+                body={"search_query": search.strip(), "result_limit": limit if limit is not None else 8, "category_filter": category},
+            )
+        except HTTPException as error:
+            if error.status_code == 404:
+                raise HTTPException(status_code=503, detail="ระบบค้นหาอาหารยังไม่พร้อม กรุณาให้ผู้ดูแลติดตั้ง migration สำหรับ search_foods") from error
+            raise
+    # No-search callers still receive the whole catalog, unless they explicitly
+    # request a limit. Category applies to both search and browse.
+    query = {"select": "*", "order": "name,id"}
+    if category:
+        query["category"] = f"eq.{category}"
+    if limit is not None:
+        query["limit"] = str(limit)
+        return _supabase_request("/rest/v1/foods", "GET", query=query)
+    return _read_all("/rest/v1/foods", query=query)
 
-    foods = []
-    offset = 0
+
+def _read_all(path: str, token: str | None = None, query: dict | None = None):
+    rows = []
     while True:
-        page = _supabase_request(
-            "/rest/v1/foods",
-            "GET",
-            query={
-                "select": "id,name,english_name,category,calories,protein,carbs,fat,sugar,fiber",
-                "order": "name",
-                "limit": "1000",
-                "offset": str(offset),
-            },
-        )
-        foods.extend(page)
+        page = _supabase_request(path, "GET", token=token, query={
+            **(query or {}), "limit": "1000", "offset": str(len(rows)),
+        })
+        rows.extend(page)
         if len(page) < 1000:
-            return foods
-        offset += 1000
+            return rows
+
+
+@app.get("/api/v1/custom-foods", tags=["Personal foods"])
+def get_custom_foods(user: AuthenticatedUser = Depends(require_authenticated_user)):
+    return _read_all("/rest/v1/custom_foods", user.access_token,
+                     {"select": "*", "user_id": f"eq.{user.id}", "order": "name,id"})
+
+
+@app.post("/api/v1/custom-foods", status_code=201, tags=["Personal foods"])
+def create_custom_food(request: CustomFoodRequest, user: AuthenticatedUser = Depends(require_authenticated_user)):
+    row = {**request.model_dump(), "user_id": user.id}
+    result = _supabase_request("/rest/v1/custom_foods", "POST", row, user.access_token,
+                               {"select": "*"}, {"Prefer": "return=representation"})
+    return result[0]
 
 
 @app.get("/api/v1/food-logs", tags=["Food logs"])
 def get_food_logs(user: AuthenticatedUser = Depends(require_authenticated_user)):
-    return _supabase_request(
+    return _read_all(
         "/rest/v1/food_logs",
-        "GET",
         token=user.access_token,
         query={
             "select": _food_log_select(),
             "user_id": f"eq.{user.id}",
-            "order": "meal_date.desc,logged_at.desc",
+            "order": "meal_date.desc,logged_at.desc,id",
         },
     )
 
@@ -589,41 +642,76 @@ def create_food_log(
     request: FoodLogRequest,
     user: AuthenticatedUser = Depends(require_authenticated_user),
 ):
-    row = request.model_dump(mode="json")
-    if request.food_id is not None:
-        food_rows = _supabase_request(
-            "/rest/v1/foods",
-            "GET",
-            token=user.access_token,
-            query={
-                "select": "id,name,english_name,calories,protein,carbs,fat,sugar,fiber",
-                "id": f"eq.{request.food_id}",
-                "limit": "1",
-            },
-        )
-        if not food_rows:
-            raise HTTPException(status_code=404, detail="ไม่พบอาหารใน catalog")
-        food = food_rows[0]
-        row.update({
-            "food_name": food["english_name"] or food["name"],
-            "food_name_th": food["name"],
-            "calories_per_serving": food["calories"],
-            "protein_per_serving": food["protein"],
-            "carbs_per_serving": food["carbs"],
-            "fat_per_serving": food["fat"],
-            "sugar_per_serving": food["sugar"],
-            "fiber_per_serving": food["fiber"],
-        })
+    row = _build_log_row(request, user)
+    result = _supabase_request("/rest/v1/food_logs", "POST", row, user.access_token,
+                               {"select": _food_log_select()}, {"Prefer": "return=representation"})
+    return result[0]
+
+
+BASIS_KEYS = ("serving_size", "serving_unit", "serving_label", "portion_grams")
+NUTRIENTS = ("calories", "protein", "carbs", "fat", "sugar", "fiber")
+
+
+def _build_log_row(request: FoodLogRequest, user: AuthenticatedUser, existing: dict | None = None):
+    row = request.model_dump(mode="json", exclude={"quantity", "quantity_unit", "replace_food"})
+    if existing is not None and not request.replace_food:
+        # Keep historical nutrition and food identity when only meal/date/amount changes.
+        row = {k: v for k, v in existing.items() if k not in {"id", "created_at"}}
+        row.update(meal_type=request.meal_type, meal_date=request.meal_date.isoformat(),
+                   logged_at=request.logged_at.isoformat(), servings=request.servings)
+    else:
+        food = None
+        if request.food_id is not None:
+            table, food_id, source = "foods", request.food_id, "catalog"
+            query = {"select": "*", "id": f"eq.{food_id}", "limit": "1"}
+        elif request.custom_food_id is not None:
+            table, food_id, source = "custom_foods", request.custom_food_id, "custom"
+            query = {"select": "*", "id": f"eq.{food_id}", "user_id": f"eq.{user.id}", "limit": "1"}
+        else:
+            source = request.source
+            if source == "catalog":
+                raise HTTPException(status_code=422, detail="อาหารจาก catalog ต้องมี food_id")
+            table = None
+        if table:
+            foods = _supabase_request(f"/rest/v1/{table}", "GET", token=user.access_token, query=query)
+            if not foods:
+                raise HTTPException(status_code=404, detail="ไม่พบอาหารหรือไม่มีสิทธิ์เข้าถึง")
+            food = foods[0]
+            row.update(food_name=food.get("english_name") or food["name"],
+                       food_name_th=food.get("name_th") or food["name"], category=food.get("category", "food"))
+            for nutrient in NUTRIENTS:
+                row[f"{nutrient}_per_serving"] = food.get(nutrient, 0)
+            defaults = ServingBasis().model_dump()
+            for key in BASIS_KEYS:
+                row[key] = food.get(key, defaults[key])
+        row["source"] = source
     row["user_id"] = user.id
-    row["source"] = "catalog" if request.food_id is not None else "ai"
-    result = _supabase_request(
-        "/rest/v1/food_logs",
-        "POST",
-        row,
-        user.access_token,
-        {"select": _food_log_select()},
-        {"Prefer": "return=representation"},
-    )
+    if request.quantity is not None:
+        basis = ServingBasis.model_validate(row)
+        if request.quantity_unit == basis.serving_unit:
+            servings = request.quantity / basis.serving_size
+        elif request.quantity_unit == "g" and basis.serving_unit == "portion" and basis.portion_grams:
+            servings = request.quantity / (basis.portion_grams * basis.serving_size)
+        else:
+            raise HTTPException(status_code=422, detail="ไม่มีข้อมูลสำหรับแปลงหน่วยนี้")
+        if not math.isfinite(servings) or not 0.001 <= servings <= 100:
+            raise HTTPException(status_code=422, detail="ปริมาณต้องเทียบเท่า 0.001–100 หน่วยข้อมูล")
+        row["servings"] = round(servings, 6)
+    return row
+
+
+@app.put("/api/v1/food-logs/{log_id}", tags=["Food logs"])
+def update_food_log(log_id: str, request: FoodLogRequest,
+                    user: AuthenticatedUser = Depends(require_authenticated_user)):
+    query = {"id": f"eq.{log_id}", "user_id": f"eq.{user.id}", "select": _food_log_select()}
+    existing = _supabase_request("/rest/v1/food_logs", "GET", token=user.access_token, query=query)
+    if not existing:
+        raise HTTPException(status_code=404, detail="ไม่พบรายการอาหารหรือไม่มีสิทธิ์แก้ไข")
+    row = _build_log_row(request, user, existing[0])
+    result = _supabase_request("/rest/v1/food_logs", "PATCH", row, user.access_token, query,
+                               {"Prefer": "return=representation"})
+    if not result:
+        raise HTTPException(status_code=404, detail="ไม่พบรายการอาหารหรือไม่มีสิทธิ์แก้ไข")
     return result[0]
 
 

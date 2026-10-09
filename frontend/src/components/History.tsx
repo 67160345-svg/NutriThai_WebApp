@@ -1,9 +1,13 @@
+import FoodLogEditor from "./FoodLogEditor";
+import { consumedLabel } from "../lib/portions";
 import { useMemo, useState } from "react";
-import { FoodLog, MealType } from "../types";
+import { Food, FoodLog, MealType } from "../types";
 import { getTotals } from "../lib/health";
 import { localDateKey } from "../lib/foodLogs";
 
 interface Props {
+  onUpdateLog?: (log: FoodLog) => Promise<void>;
+  customFoods?: Food[];
   logs: FoodLog[];
   onRemoveLog: (id: string) => void;
   onUpdateServings: (id: string, servings: number) => Promise<void>;
@@ -30,7 +34,7 @@ function shiftDate(value: string, days: number) {
   return localDateKey(date);
 }
 
-export default function History({ logs, onRemoveLog, onUpdateServings }: Props) {
+export default function History({ logs, onRemoveLog, onUpdateServings, onUpdateLog, customFoods = [] }: Props) {
   const availableDates = useMemo(
     () => Array.from(new Set(logs.map((log) => localDateKey(new Date(log.loggedAt))))).sort(),
     [logs],
@@ -47,6 +51,12 @@ export default function History({ logs, onRemoveLog, onUpdateServings }: Props) 
   return (
     <div className="mx-auto w-full max-w-[1160px] px-4 py-7 sm:px-8">
       <h1 className="mb-5 text-2xl font-bold text-[#1a2820]">ประวัติอาหาร</h1>
+      {editingId && onUpdateLog && logs.find(log => log.id === editingId) && <FoodLogEditor
+        key={editingId} log={logs.find(log => log.id === editingId)!} customFoods={customFoods}
+        onCancel={() => setEditingId(null)} onSave={async next => {
+          await onUpdateLog(next); setSelectedDate(localDateKey(next.loggedAt)); setEditingId(null);
+        }} />}
+
 
       <div className="mb-5 flex items-end gap-3">
         <button
@@ -126,8 +136,8 @@ export default function History({ logs, onRemoveLog, onUpdateServings }: Props) 
                 <span aria-hidden="true" className="grid h-11 w-11 shrink-0 place-items-center rounded-[14px] bg-[#f3f0ea] text-xl">{log.food.category === "drink" ? "♧" : log.food.category === "dessert" ? "✿" : "♨"}</span>
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-sm font-semibold text-[#1a2820]">{log.food.nameTh}</div>
-                  <div className="text-xs text-[#718078]">{log.servings} ที่ · {Math.round(log.food.calories * log.servings)} kcal</div>
-                  {editingId === log.id && (
+                  <div className="text-xs text-[#718078]">{consumedLabel(log.food, log.servings)} · {Math.round(log.food.calories * log.servings)} kcal</div>
+                  {editingId === log.id && !onUpdateLog && (
                     <div className="mt-3 flex flex-wrap items-center gap-2">
                       <label className="text-xs text-[#596c5c]" htmlFor={`servings-${log.id}`}>จำนวน serving</label>
                       <input

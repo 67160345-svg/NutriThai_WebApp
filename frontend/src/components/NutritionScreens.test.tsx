@@ -1,5 +1,5 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Food, FoodLog, HealthProfile } from "../types";
 import AdviceCard from "./AdviceCard";
 import Dashboard from "./Dashboard";
@@ -7,6 +7,8 @@ import History from "./History";
 import Navbar from "./Navbar";
 import { computeHealthMetrics } from "../lib/health";
 import { localDateKey } from "../lib/foodLogs";
+
+afterEach(cleanup);
 
 const profile: HealthProfile = {
   gender: "male",
@@ -23,6 +25,7 @@ const food: Food = {
   name: "Rice",
   nameTh: "ข้าว",
   category: "food",
+  servingSize: 100, servingUnit: "g", servingLabel: "กรัม",
   calories: 200,
   protein: 8,
   carbs: 35,
@@ -91,6 +94,10 @@ describe("nutrition screens", () => {
     expect(screen.getByText("ความสม่ำเสมอในการบันทึก")).toBeTruthy();
     expect(screen.getByText("ไอเดียเมนูไทยสำหรับมื้อถัดไป")).toBeTruthy();
     expect(screen.getByText("ต้มจืด")).toBeTruthy();
+    rerender(<AdviceCard healthProfile={profile} logs={[makeLog()]} foods={[{...alternatives[0], servingUnit: "ml"}]} />);
+    expect(screen.queryByText("ไอเดียเมนูไทยสำหรับมื้อถัดไป")).toBeNull();
+    rerender(<AdviceCard healthProfile={profile} logs={[makeLog({food:{...food,servingUnit:undefined}})]} foods={alternatives} />);
+    expect(screen.queryByText("ไอเดียเมนูไทยสำหรับมื้อถัดไป")).toBeNull();
   });
 
   it("renders the five navigation choices and calls profile/sign-out actions", () => {

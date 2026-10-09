@@ -46,7 +46,13 @@ export async function apiJson<T>(path: string, init: RequestInit = {}): Promise<
     if (response.ok) throw new Error("Backend ส่งข้อมูลตอบกลับที่ไม่ถูกต้อง");
     result = {};
   }
-  if (!response.ok) throw new Error(result.detail || `คำขอไม่สำเร็จ (${response.status})`);
+  if (!response.ok) {
+    const detail = result.detail;
+    const message = Array.isArray(detail)
+      ? detail.map((item: { msg?: string }) => item.msg || "ข้อมูลไม่ถูกต้อง").join(" · ")
+      : typeof detail === "string" ? detail : `คำขอไม่สำเร็จ (${response.status})`;
+    throw new Error(message);
+  }
   return result as T;
 }
 

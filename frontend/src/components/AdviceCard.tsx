@@ -1,3 +1,4 @@
+import { basisLabel } from "../lib/portions";
 import { Food, FoodLog, HealthProfile } from "../types";
 import { getTotals } from "../lib/health";
 import { localDateKey } from "../lib/foodLogs";
@@ -34,7 +35,11 @@ export default function AdviceCard({ healthProfile, logs, foods }: Props) {
   const todayTotals = getTotals(todayLogs);
   const sourceFood = todayLogs.find((log) => log.food.category === "food")?.food;
   const menuSwaps = sourceFood
-    ? foods.filter((food) => food.category === "food" && food.id !== sourceFood.id && food.calories < sourceFood.calories - 80).slice(0, 3)
+    ? foods.filter((food) => food.category === "food" && food.id !== sourceFood.id && food.servingUnit === sourceFood.servingUnit &&
+      food.servingSize === sourceFood.servingSize &&
+      (food.servingUnit === "g" || food.servingUnit === "ml" ||
+        (Boolean(food.portionGrams) && food.portionGrams === sourceFood.portionGrams)) &&
+      food.calories < sourceFood.calories - 80).slice(0, 3)
     : [];
 
   return (
@@ -122,7 +127,7 @@ export default function AdviceCard({ healthProfile, logs, foods }: Props) {
       {menuSwaps.length > 0 && sourceFood && (
         <section className="rounded-[22px] border border-[#e5e2da] bg-white p-5 shadow-sm sm:p-6">
           <h2 className="text-base font-bold text-[#1a2820]">ไอเดียเมนูไทยสำหรับมื้อถัดไป</h2>
-          <p className="mt-1 text-sm text-[#596c5c]">ตัวเลือกจากฐานข้อมูลที่มีแคลอรีต่อหน่วยน้อยกว่า {sourceFood.nameTh} · เลือกปริมาณตามความเหมาะสม</p>
+          <p className="mt-1 text-sm text-[#596c5c]">ตัวเลือกที่ใช้ปริมาณอ้างอิงเท่ากัน ({basisLabel(sourceFood)}) และแคลอรีน้อยกว่า {sourceFood.nameTh} · เลือกปริมาณตามความเหมาะสม</p>
           <div className="mt-4 space-y-2">
             {menuSwaps.map((food) => (
               <div key={food.id} className="flex items-center justify-between gap-3 rounded-[16px] border border-[#edf4ee] bg-[#fbfcf9] p-3">

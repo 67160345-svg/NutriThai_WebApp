@@ -1,4 +1,13 @@
-export interface Food {
+export type FoodUnit = "portion" | "g" | "ml";
+export interface ServingBasis {
+  servingSize?: number;
+  servingUnit?: FoodUnit;
+  servingLabel?: string;
+  portionGrams?: number | null;
+}
+export interface Food extends ServingBasis {
+  customId?: string;
+  source?: "catalog" | "ai" | "custom";
   id: number;
   name: string;
   nameTh: string;
@@ -33,6 +42,9 @@ export interface HealthProfile {
 }
 
 export interface FoodLog {
+  quantity?: number;
+  quantityUnit?: FoodUnit;
+  replaceFood?: boolean;
   id: string;
   food: Food;
   mealType: MealType;

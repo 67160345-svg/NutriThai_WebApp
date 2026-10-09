@@ -2,6 +2,12 @@
 
 เว็บแอปติดตามโภชนาการสำหรับอาหารไทย ช่วยคำนวณเป้าหมายพลังงาน บันทึกอาหารรายวัน วิเคราะห์รูปอาหารด้วย Gemini และดูแนวโน้มสุขภาพย้อนหลัง
 
+## อัปเดตข้อ 1–4 (9 ตุลาคม 2026)
+
+เพิ่มหน่วยอาหารและแปลงปริมาณ อาหารส่วนตัว และแก้บันทึกครบทุกช่อง พร้อม migration และการทดสอบ
+**อ่าน [คู่มือติดตั้งข้อ 1–4](docs/steps-1-4-setup.md) ก่อนเริ่มแอปรุ่นนี้** ต้อง apply migration บน Supabase เดิมก่อน
+การ apply/ตรวจ Supabase จริงยังไม่เสร็จในสภาพแวดล้อมนี้
+
 ## System Overview
 
 ```text
@@ -9,7 +15,7 @@ Frontend (React UI)
         |
         +---- Backend API (FastAPI; HttpOnly session cookies)
                     |
-                    +---- Supabase Auth + PostgreSQL (profiles, foods, food_logs)
+                    +---- Supabase Auth + PostgreSQL (profiles, foods, custom_foods, food_logs)
                     +---- Gemini Vision API (optional)
 ```
 
@@ -21,6 +27,7 @@ Frontend (React UI)
 - **Backend URL**: `http://localhost:8000`
 - **Architecture และ self-assessment**: [docs/architecture-and-tech-stack.md](./docs/architecture-and-tech-stack.md)
 - **ผลทดลอง Database Indexing Lab**: [docs/indexing-lab-results.md](./docs/indexing-lab-results.md)
+- **สถานะโปรเจกต์และแผนดำเนินงานต่อ**: [docs/project-status-and-next-steps.md](./docs/project-status-and-next-steps.md)
 
 > ปัจจุบัน backend เป็น FastAPI modular monolith ที่ทำงานร่วมกับ frontend, Supabase Auth/PostgreSQL และ Gemini API; ยังไม่ใช่ชุด microservices ที่ backend แต่ละส่วนแยก deploy อย่างอิสระ
 
@@ -62,7 +69,8 @@ Frontend (React UI)
 - Category filter: `All`, `Meals`, `Desserts`, `Drinks`
 - Popular choices เมื่อยังไม่มีคำค้นหา
 - เลือก Meal date เพื่อบันทึกย้อนหลัง
-- เลือก Meal type และ Serving size
+- เลือก Meal type และปริมาณตามหน่วยอ้างอิง (กรัม/มิลลิลิตร/portion); แปลง portion เป็นกรัมเมื่อมีน้ำหนักจริง
+- เพิ่มอาหารส่วนตัวจากฉลากและเลือกใช้ซ้ำได้
 - รองรับอาหารไทย ของหวาน และเครื่องดื่ม
 - เก็บข้อมูลใน Supabase สำหรับผู้ใช้ที่ลงชื่อเข้าใช้; Guest ใช้ข้อมูลใน memory
 
@@ -82,17 +90,16 @@ Frontend (React UI)
 - แสดงรายการอาหารของแต่ละวัน
 - สรุป Calories, Protein, Carbs และ Fats รายวัน
 - Quick date buttons สำหรับวันที่มีข้อมูล
-- ลบรายการย้อนหลังได้
+- ลบรายการย้อนหลัง และแก้อาหาร/ชื่อ/โภชนาการเฉพาะรายการ/มื้อ/วันที่/ปริมาณได้
 - ข้อมูล log ของบัญชียังคงอยู่หลัง refresh ผ่าน Supabase
 
 ### Health Insights
 
-- แจ้งเตือนเมื่อ Calories เกินเป้าหมาย
-- แจ้งเตือนเมื่อ Calories ยังไม่ถึงเป้าหมาย
-- Next Meal Recommendation จาก Calories ที่เหลือ
-- Thai Menu Swap เพื่อแนะนำเมนูที่ Calories ต่ำกว่า
-- Weekly Health Pattern จากข้อมูลย้อนหลัง 7 วัน
-- Workout suggestions เมื่อรับประทานเกินเป้าหมาย
+- สรุปจำนวนวันที่บันทึก ค่าเฉลี่ยแคลอรี และวันที่เกินเป้าหมาย
+- กราฟวันจันทร์–อาทิตย์ของสัปดาห์ปัจจุบัน
+- สารอาหารที่บันทึกวันนี้
+- เมนูทดแทนจาก catalog เฉพาะข้อมูลที่เปรียบเทียบหน่วย/ปริมาณอ้างอิงกันได้
+- คำแนะนำมื้อถัดไปและการออกกำลังกายยังไม่ได้ยืนยันว่ามี flow ครบในโค้ด ZIP ที่ใช้พัฒนารอบนี้
 
 ### Product Experience
 
@@ -126,7 +133,6 @@ Frontend (React UI)
 │       ├── lib/health.ts
 │       ├── lib/foodLogs.ts
 │       ├── lib/api.ts
-│       ├── lib/i18n.ts
 │       └── components/
 ├── docker-compose.yaml
 ├── .env.example
@@ -243,11 +249,11 @@ API key ต้องอยู่ใน backend environment เท่านั้
 - Supabase JWT สำหรับ Gemini endpoint ต้องใช้ signing key แบบ asymmetric (ES256 หรือ RS256) ที่เผยแพร่ผ่าน JWKS
 - ต้องตั้ง `GEMINI_API_KEY` เพื่อใช้ image scan
 - รีเซ็ตรหัสผ่านต้องเพิ่ม URL ของเว็บใน Supabase Authentication → URL Configuration → Redirect URLs
-- การแก้ไข food log ใน UI รองรับเฉพาะ serving count; ยังแก้เมนู/มื้อ/วันที่ไม่ได้
+- ข้อมูลอาหารเดิมที่ไม่มีหน่วยยังแสดง “หน่วยเดิม (ไม่ระบุขนาด)” ต้องตรวจแหล่งอ้างอิงก่อน backfill metadata; ไม่เปลี่ยนค่าโภชนาการเก่าอัตโนมัติ
 - ยังไม่มี cloud hosting/production deployment ที่ผูกกับ project/โดเมนจริง
 - Gemini scan จำกัดเริ่มต้น 10 ครั้งต่อผู้ใช้ต่อชั่วโมง (`GEMINI_RATE_LIMIT_REQUESTS`, `GEMINI_RATE_LIMIT_WINDOW_SECONDS`) และ Nginx จำกัด API ที่ 30 request/นาทีต่อ IP พร้อม burst 10; limiter ใน backend เก็บใน memory จึงไม่แชร์ข้าม worker/replica และรีเซ็ตเมื่อ restart ควรใช้ distributed/API-gateway rate limit ก่อนเปิด production
 - Frontend coverage ครอบคลุม source TypeScript/TSX ทั้งหมด โดยตั้ง threshold แยกอย่างน้อย 70% สำหรับ statements, branches, functions และ lines
-- ผล coverage frontend ที่ตรวจล่าสุด: statements 83.41%, branches 75.26%, functions 75.60% และ lines 85.37%; เป็นผลจากชุดทดสอบ ไม่ใช่การรับประกันว่าไม่มีบั๊ก
+- ผลทดสอบรอบนี้: Frontend 50 tests ผ่าน; coverage statements 86.81%, branches 78.28%, functions 80.74%, lines 88.14%; Backend 47 tests ผ่าน และ coverage 92.46% (ไม่ใช่การรับประกันว่าไม่มีบั๊ก)
 - ค่าโภชนาการจาก Gemini เป็นค่าประมาณ ผู้ใช้ควรตรวจสอบ portion size
 
 ## Validation

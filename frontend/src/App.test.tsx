@@ -11,6 +11,9 @@ const appMocks = vi.hoisted(() => ({
   deleteFoodLog: vi.fn(),
   readFoodLogs: vi.fn(),
   readFoods: vi.fn(),
+  readCustomFoods: vi.fn(),
+  createCustomFood: vi.fn(),
+  updateFoodLog: vi.fn(),
   readProfile: vi.fn(),
   saveProfile: vi.fn(),
   updateFoodLogServings: vi.fn(),
@@ -30,6 +33,9 @@ vi.mock("./lib/foodLogs", () => ({
   deleteFoodLog: appMocks.deleteFoodLog,
   readFoodLogs: appMocks.readFoodLogs,
   readFoods: appMocks.readFoods,
+  readCustomFoods: appMocks.readCustomFoods,
+  createCustomFood: appMocks.createCustomFood,
+  updateFoodLog: appMocks.updateFoodLog,
   readProfile: appMocks.readProfile,
   saveProfile: appMocks.saveProfile,
   updateFoodLogServings: appMocks.updateFoodLogServings,
@@ -78,15 +84,15 @@ vi.mock("./components/Dashboard", () => ({
 }));
 
 vi.mock("./components/FoodLogger", () => ({
-  default: ({ onAddLog, foods }: { onAddLog: (log: FoodLog) => Promise<void>; foods: Food[] }) => (
-    <section><h1>Food logger</h1><p>Food catalog: {foods.length}</p><button onClick={() => void onAddLog(appMocks.foodLog!)}>Add log</button></section>
+  default: ({ onAddLog, foods, customFoods, onCreateCustomFood }: { onAddLog: (log: FoodLog) => Promise<void>; foods: Food[]; customFoods: Food[]; onCreateCustomFood: (food: Food) => Promise<Food> }) => (
+    <section><h1>Food logger</h1><p>Food catalog: {foods.length}</p><p>Personal foods: {customFoods.length}</p><button onClick={() => void onCreateCustomFood({...appMocks.foodLog!.food,id:0,source:"custom"})}>Create personal food</button><button onClick={() => void onAddLog(appMocks.foodLog!)}>Add log</button></section>
   ),
 }));
 
 vi.mock("./components/History", () => ({
-  default: ({ onRemoveLog, onUpdateServings }: { onRemoveLog: (id: string) => void; onUpdateServings: (id: string, servings: number) => Promise<void> }) => (
+  default: ({ onRemoveLog, onUpdateServings, onUpdateLog }: { onRemoveLog: (id: string) => void; onUpdateServings: (id: string, servings: number) => Promise<void>; onUpdateLog: (log: FoodLog) => Promise<void> }) => (
     <section>
-      <h1>History</h1>
+      <h1>History</h1><button onClick={() => void onUpdateLog({...appMocks.foodLog!,mealType:"dinner",servings:2})}>Edit full log</button>
       <button onClick={() => onRemoveLog("log-1")}>Remove history log</button>
       <button onClick={() => void onUpdateServings("log-1", 2)}>Update history log</button>
     </section>
@@ -135,6 +141,9 @@ describe("app session and navigation flows", () => {
     appMocks.readProfile.mockResolvedValue(profile);
     appMocks.readFoodLogs.mockResolvedValue([]);
     appMocks.readFoods.mockResolvedValue([food]);
+    appMocks.readCustomFoods.mockResolvedValue([]);
+    appMocks.createCustomFood.mockResolvedValue({...food,id:0,customId:"private-id",source:"custom"});
+    appMocks.updateFoodLog.mockImplementation(async item => item);
     appMocks.createFoodLog.mockResolvedValue(log);
     appMocks.deleteFoodLog.mockResolvedValue(undefined);
     appMocks.updateFoodLogServings.mockResolvedValue(undefined);
@@ -218,4 +227,26 @@ describe("app session and navigation flows", () => {
     await screen.findByRole("heading", { name: "Mock sign in" });
     expect(appMocks.acceptAuthCallback).toHaveBeenCalledWith("access", "refresh", 3600);
   });
+});
+
+
+it("wires personal foods and complete log edits through the authenticated API", async () => {
+  cleanup();
+  appMocks.profile = profile; appMocks.foodLog = log;
+  appMocks.readProfile.mockResolvedValue(profile);
+  appMocks.readFoods.mockResolvedValue([food]);
+  appMocks.readCustomFoods.mockResolvedValue([]);
+  appMocks.createCustomFood.mockResolvedValue({...food,id:0,customId:"private-id",source:"custom"});
+  appMocks.updateFoodLog.mockImplementation(async item => item);
+  appMocks.apiJson.mockResolvedValue(appMocks.user);
+  appMocks.readFoodLogs.mockResolvedValue([log]);
+  render(<App />);
+  await screen.findByText(/Dashboard/);
+  fireEvent.click(screen.getByText("Go logger"));
+  fireEvent.click(screen.getByText("Create personal food"));
+  await screen.findByText("Personal foods: 1");
+  expect(appMocks.createCustomFood).toHaveBeenCalled();
+  fireEvent.click(screen.getByText("Go history"));
+  fireEvent.click(screen.getByText("Edit full log"));
+  await waitFor(() => expect(appMocks.updateFoodLog).toHaveBeenCalledWith(expect.objectContaining({id:"log-1",mealType:"dinner",servings:2})));
 });

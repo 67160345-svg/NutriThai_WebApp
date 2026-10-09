@@ -203,3 +203,19 @@ describe("API-backed profile and food-log data access", () => {
     await expect(readFoods()).resolves.toEqual([]);
   });
 });
+
+it("persists and reloads personal foods with a UUID and serving basis", async () => {
+  const {createCustomFood,readCustomFoods,updateFoodLog}=await import("./foodLogs");
+  const row={id:"personal-id",name:"Milk",category:"drink",calories:"60",protein:"3",carbs:"5",fat:"2",sugar:"5",fiber:"0",serving_size:"100",serving_unit:"ml",serving_label:"มิลลิลิตร"};
+  apiJson.mockResolvedValueOnce(row);
+  const food=await createCustomFood({...foodLog.food,id:0,source:"custom",nameTh:"Milk",servingSize:100,servingUnit:"ml"});
+  expect(food).toMatchObject({id:0,customId:"personal-id",source:"custom",servingSize:100,servingUnit:"ml",calories:60});
+  expect(JSON.parse(apiJson.mock.calls[0][1].body)).toMatchObject({name:"Milk",serving_size:100,serving_unit:"ml"});
+  apiJson.mockResolvedValueOnce([row]);
+  expect(await readCustomFoods()).toEqual([food]);
+  apiJson.mockResolvedValueOnce({...savedLogRow,food_id:null,custom_food_id:"personal-id",category:"drink",source:"custom",serving_size:100,serving_unit:"ml"});
+  const saved=await updateFoodLog({...foodLog,food,quantity:250,quantityUnit:"ml",servings:2.5,replaceFood:true});
+  expect(saved.food).toMatchObject({customId:"personal-id",category:"drink",source:"custom",servingUnit:"ml"});
+  expect(apiJson.mock.calls.at(-1)![0]).toBe("/api/v1/food-logs/client-id");
+  expect(JSON.parse(apiJson.mock.calls.at(-1)![1].body)).toMatchObject({food_id:null,custom_food_id:"personal-id",source:"custom",quantity:250,quantity_unit:"ml",replace_food:true});
+});

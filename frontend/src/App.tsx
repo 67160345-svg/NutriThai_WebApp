@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { FoodLog, HealthProfile, Page } from "./types";
 import type { Food } from "./types";
 import { computeHealthMetrics } from "./lib/health";
-import { createFoodLog, deleteFoodLog, readFoodLogs, readFoods, readProfile, saveProfile, updateFoodLogServings } from "./lib/foodLogs";
+import { createFoodLog, deleteFoodLog, readFoodLogs, readFoods, readProfile, saveProfile, updateFoodLogServings, updateFoodLog, readCustomFoods, createCustomFood } from "./lib/foodLogs";
 import { acceptAuthCallback, apiJson, signOut as signOutApi } from "./lib/api";
 import type { ApiUser } from "./lib/api";
 import AdviceCard from "./components/AdviceCard";
@@ -30,6 +30,7 @@ export default function App() {
   const [healthProfile, setHealthProfile] = useState<HealthProfile | null>(null);
   const [logs, setLogs] = useState<FoodLog[]>([]);
   const [foodCatalog, setFoodCatalog] = useState<Food[]>([]);
+  const [customFoods, setCustomFoods] = useState<Food[]>([]);
   const [page, setPage] = useState<Page>("dashboard");
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showAuthPage, setShowAuthPage] = useState(false);
@@ -54,13 +55,15 @@ export default function App() {
     setAccountLoading(true);
     setErrorMessage("");
     try {
-      const [profile, savedLogs, catalog] = await Promise.all([
+      const [profile, savedLogs, catalog, personalFoods] = await Promise.all([
         readProfile(),
         readFoodLogs(),
         readFoods(),
+        readCustomFoods(),
       ]);
       setHealthProfile(profile ?? guestProfile);
       setLogs(savedLogs);
+      setCustomFoods(personalFoods);
       setFoodCatalog(catalog);
       setShowOnboarding(!profile);
     } catch (error) {
@@ -142,6 +145,19 @@ export default function App() {
     setLogs((previous) => previous.map((item) => item.id === id ? { ...item, servings } : item));
   };
 
+  const addCustomFood = async (food: Food) => {
+    if (!isGuest && !account) throw new Error("กรุณาเข้าสู่ระบบ");
+    const saved = isGuest ? { ...food, customId: crypto.randomUUID() } : await createCustomFood(food);
+    setCustomFoods(previous => [...previous, saved]);
+    return saved;
+  };
+
+  const editLog = async (log: FoodLog) => {
+    if (!isGuest && !account) throw new Error("กรุณาเข้าสู่ระบบ");
+    const saved = isGuest ? { ...log, replaceFood: false } : await updateFoodLog(log);
+    setLogs(previous => previous.map(item => item.id === log.id ? saved : item));
+  };
+
   const continueAsGuest = async (profile: HealthProfile) => {
     setAccountLoading(true);
     setErrorMessage("");
@@ -155,6 +171,7 @@ export default function App() {
       setDisplayName(guestName);
       setFoodCatalog(catalog);
       setLogs([]);
+      setCustomFoods([]);
       setPage("dashboard");
       localStorage.removeItem("nutrithai_logs");
       setShowOnboarding(true);
@@ -181,6 +198,7 @@ export default function App() {
     setHealthProfile(null);
     setLogs([]);
     setFoodCatalog([]);
+    setCustomFoods([]);
     setShowOnboarding(false);
     setShowUserMenu(false);
   };
@@ -301,8 +319,8 @@ export default function App() {
       {errorMessage && <div role="alert" className="mx-auto mt-3 w-full max-w-[1160px] px-4 sm:px-8"><div className="rounded-xl bg-rose-50 p-3 text-sm text-rose-800">{errorMessage}</div></div>}
       <main id="main-content" className="min-h-[calc(100vh-120px)] overflow-y-auto pb-24 md:pb-10">
         {page === "dashboard" && <Dashboard healthProfile={healthProfile!} logs={logs} onRemoveLog={(id) => void removeLog(id).catch((error) => setErrorMessage(error.message))} onNavigate={setPage} username={displayName || "คุณ"} />}
-        {page === "history" && <History logs={logs} onRemoveLog={(id) => void removeLog(id).catch((error) => setErrorMessage(error.message))} onUpdateServings={updateLogServings} />}
-        {page === "logger" && <FoodLogger foods={foodCatalog} onAddLog={addLog} isAuthenticated={Boolean(account)} />}
+        {page === "history" && <History logs={logs} onRemoveLog={(id) => void removeLog(id).catch((error) => setErrorMessage(error.message))} onUpdateServings={updateLogServings} onUpdateLog={editLog} customFoods={customFoods} />}
+        {page === "logger" && <FoodLogger customFoods={customFoods} onCreateCustomFood={addCustomFood} foods={foodCatalog} onAddLog={addLog} isAuthenticated={Boolean(account)} />}
         {page === "ai-scan" && <FoodLogger key="ai-scan" foods={foodCatalog} onAddLog={addLog} isAuthenticated={Boolean(account)} initialTab="scan" scanOnly />}
         {page === "advice" && <AdviceCard healthProfile={healthProfile!} logs={logs} foods={foodCatalog} />}
       </main>

@@ -1,0 +1,10 @@
+{
+  "dependencies": {
+    "@electric-sql/pglite": "^0.5.8"
+  },
+  "name": "nutrithai-database-tests",
+  "private": true,
+  "scripts": {
+    "test": "node migrations.test.mjs"
+  }
+}

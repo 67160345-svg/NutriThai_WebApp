@@ -20,6 +20,10 @@ type ProfileRow = {
 type FoodRow = {
   id: number;
   name: string;
+  serving_size?: number;
+  serving_unit?: Food["servingUnit"];
+  serving_label?: string;
+  portion_grams?: number | null;
   english_name: string | null;
   name_th?: string | null;
   category: Food["category"];
@@ -35,6 +39,12 @@ type FoodLogRow = {
   id: string;
   food_id: number | null;
   source: "catalog" | "ai" | "custom";
+  custom_food_id?: string | null;
+  category?: Food["category"];
+  serving_size?: number;
+  serving_unit?: Food["servingUnit"];
+  serving_label?: string;
+  portion_grams?: number | null;
   food_name: string;
   food_name_th: string | null;
   meal_type: MealType;
@@ -71,7 +81,10 @@ function mapLog(row: FoodLogRow): FoodLog {
     id: row.food_id ?? 0,
     name: row.food_name,
     nameTh: row.food_name_th ?? row.food_name,
-    category: "food",
+    category: row.category ?? "food",
+    source: row.source,
+    customId: row.custom_food_id ?? undefined,
+    ...mapBasis(row),
     calories: Number(row.calories_per_serving),
     protein: Number(row.protein_per_serving),
     carbs: Number(row.carbs_per_serving),
@@ -120,25 +133,41 @@ export async function readFoodLogs(): Promise<FoodLog[]> {
   return data.map(mapLog);
 }
 
+export function logPayload(log: FoodLog) {
+  return {
+    food_id: log.food.id > 0 ? log.food.id : null,
+    custom_food_id: log.food.customId ?? null,
+    source: log.food.source ?? (log.food.id > 0 ? "catalog" : "ai"),
+    category: log.food.category,
+    food_name: log.food.name,
+    food_name_th: log.food.nameTh,
+    meal_type: log.mealType,
+    servings: log.servings,
+    quantity: log.quantity,
+    quantity_unit: log.quantityUnit,
+    replace_food: log.replaceFood ?? false,
+    ...basisPayload(log.food),
+    calories_per_serving: log.food.calories,
+    protein_per_serving: log.food.protein,
+    carbs_per_serving: log.food.carbs,
+    fat_per_serving: log.food.fat,
+    sugar_per_serving: log.food.sugar,
+    fiber_per_serving: log.food.fiber,
+    meal_date: localDateKey(log.loggedAt),
+    logged_at: log.loggedAt.toISOString(),
+  };
+}
+
 export async function createFoodLog(log: FoodLog) {
-  const catalogFoodId = log.food.id > 0 ? log.food.id : null;
   const data = await apiJson<FoodLogRow>("/api/v1/food-logs", {
-    method: "POST",
-    body: JSON.stringify({
-      food_id: catalogFoodId,
-      food_name: log.food.name,
-      food_name_th: log.food.nameTh,
-      meal_type: log.mealType,
-      servings: log.servings,
-      calories_per_serving: log.food.calories,
-      protein_per_serving: log.food.protein,
-      carbs_per_serving: log.food.carbs,
-      fat_per_serving: log.food.fat,
-      sugar_per_serving: log.food.sugar,
-      fiber_per_serving: log.food.fiber,
-      meal_date: localDateKey(log.loggedAt),
-      logged_at: log.loggedAt.toISOString(),
-    }),
+    method: "POST", body: JSON.stringify(logPayload(log)),
+  });
+  return mapLog(data);
+}
+
+export async function updateFoodLog(log: FoodLog) {
+  const data = await apiJson<FoodLogRow>(`/api/v1/food-logs/${encodeURIComponent(log.id)}`, {
+    method: "PUT", body: JSON.stringify(logPayload(log)),
   });
   return mapLog(data);
 }
@@ -175,6 +204,8 @@ export async function readFoods(options: ReadFoodsOptions = {}): Promise<Food[]>
     name: row.english_name ?? row.name,
     nameTh: row.name_th ?? row.name,
     category: row.category,
+    source: "catalog",
+    ...mapBasis(row),
     calories: Number(row.calories),
     protein: Number(row.protein),
     carbs: Number(row.carbs),
@@ -182,4 +213,33 @@ export async function readFoods(options: ReadFoodsOptions = {}): Promise<Food[]>
     sugar: Number(row.sugar),
     fiber: Number(row.fiber),
   }));
+}
+
+function mapBasis(row: { serving_size?: number; serving_unit?: Food["servingUnit"]; serving_label?: string; portion_grams?: number | null }) {
+  return { servingSize: Number(row.serving_size ?? 1), servingUnit: row.serving_unit ?? "portion",
+    servingLabel: row.serving_label ?? "หน่วยเดิม (ไม่ระบุขนาด)",
+    portionGrams: row.portion_grams == null ? null : Number(row.portion_grams) };
+}
+
+function basisPayload(food: Food) {
+  return { serving_size: food.servingSize ?? 1, serving_unit: food.servingUnit ?? "portion",
+    serving_label: food.servingLabel ?? "หน่วยเดิม (ไม่ระบุขนาด)", portion_grams: food.portionGrams ?? null };
+}
+
+type CustomRow = Omit<FoodRow, "id"> & { id: string };
+function mapCustom(row: CustomRow): Food {
+  return { id: 0, customId: row.id, source: "custom", name: row.name, nameTh: row.name,
+    category: row.category, calories: Number(row.calories), protein: Number(row.protein),
+    carbs: Number(row.carbs), fat: Number(row.fat), sugar: Number(row.sugar), fiber: Number(row.fiber), ...mapBasis(row) };
+}
+export async function readCustomFoods(): Promise<Food[]> {
+  return (await apiJson<CustomRow[]>("/api/v1/custom-foods")).map(mapCustom);
+}
+export async function createCustomFood(food: Food): Promise<Food> {
+  const row = await apiJson<CustomRow>("/api/v1/custom-foods", {
+    method: "POST", body: JSON.stringify({ name: food.nameTh, category: food.category,
+      calories: food.calories, protein: food.protein, carbs: food.carbs, fat: food.fat,
+      sugar: food.sugar, fiber: food.fiber, ...basisPayload(food) }),
+  });
+  return mapCustom(row);
 }
