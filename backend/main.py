@@ -10,7 +10,7 @@ from collections import OrderedDict, deque
 from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Literal
-from uuid import UUID
+from uuid import UUID, uuid5
 from zoneinfo import ZoneInfo
 from urllib.parse import urlparse, urlencode
 import jwt
@@ -222,6 +222,50 @@ class ServingsRequest(BaseModel):
     servings: float = Field(ge=0.001, le=100)
 
 
+class FoodPreferenceRequest(BaseModel):
+    food_id: int | None = Field(default=None, ge=1)
+    custom_food_id: UUID | None = None
+    preference: Literal["like", "not_interested", "avoid"]
+
+    @model_validator(mode="after")
+    def one_food(self):
+        if (self.food_id is None) == (self.custom_food_id is None):
+            raise ValueError("เลือกอาหารจากแหล่งเดียว")
+        return self
+
+
+class WeightRequest(BaseModel):
+    model_config = ConfigDict(allow_inf_nan=False)
+    measured_on: date
+    weight_kg: float = Field(ge=20, le=500)
+
+    @model_validator(mode="after")
+    def not_future(self):
+        if self.measured_on > datetime.now(ZoneInfo("Asia/Bangkok")).date():
+            raise ValueError("ไม่สามารถบันทึกน้ำหนักในอนาคต")
+        return self
+
+
+class BatchLogRequest(BaseModel):
+    request_id: UUID
+    items: list[FoodLogRequest] = Field(min_length=1, max_length=30)
+
+
+class CopyMealRequest(BaseModel):
+    request_id: UUID
+    log_ids: list[UUID] = Field(min_length=1, max_length=30)
+    meal_date: date
+    meal_type: Literal["breakfast", "lunch", "dinner", "snack"]
+
+    @model_validator(mode="after")
+    def valid_copy(self):
+        if len(set(self.log_ids)) != len(self.log_ids):
+            raise ValueError("รายการซ้ำ")
+        if self.meal_date > datetime.now(ZoneInfo("Asia/Bangkok")).date():
+            raise ValueError("ไม่สามารถบันทึกวันที่ในอนาคต")
+        return self
+
+
 def _authenticated_user(authorization: str | None) -> AuthenticatedUser:
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="กรุณาเข้าสู่ระบบ")
@@ -273,7 +317,7 @@ def require_authenticated_user(
 def _supabase_request(
     path: str,
     method: str,
-    body: dict | None = None,
+    body: dict | list | None = None,
     token: str | None = None,
     query: dict | None = None,
     extra_headers: dict | None = None,
@@ -524,7 +568,14 @@ def update_password(
 
 @app.post("/api/v1/auth/logout", tags=["Authentication"])
 def sign_out(response: Response, user: AuthenticatedUser = Depends(require_authenticated_user)):
-    _supabase_request("/auth/v1/logout", "POST", token=user.access_token)
+    try:
+        _supabase_request("/auth/v1/logout", "POST", token=user.access_token)
+    except HTTPException as error:
+        if not (
+            error.status_code in {400, 401, 403}
+            and "session from session_id claim in jwt does not exist" in str(error.detail).casefold()
+        ):
+            raise
     _clear_auth_cookies(response)
     return {"status": "ok"}
 
@@ -646,6 +697,92 @@ def create_food_log(
     result = _supabase_request("/rest/v1/food_logs", "POST", row, user.access_token,
                                {"select": _food_log_select()}, {"Prefer": "return=representation"})
     return result[0]
+
+
+def _insert_batch(rows: list[dict], request_id: UUID, user: AuthenticatedUser):
+    # Stable, per-account IDs make a retry safe after a lost HTTP response.
+    ids = [str(uuid5(request_id, f"{user.id}:{i}")) for i in range(len(rows))]
+    for row, row_id in zip(rows, ids):
+        row["id"] = row_id
+    _supabase_request("/rest/v1/food_logs", "POST", rows, user.access_token,
+                      {"on_conflict": "id"}, {"Prefer": "resolution=ignore-duplicates,return=minimal"})
+    saved = _supabase_request("/rest/v1/food_logs", "GET", token=user.access_token,
+        query={"id": f"in.({','.join(ids)})", "user_id": f"eq.{user.id}", "select": _food_log_select()})
+    by_id = {row["id"]: row for row in saved}
+    if any(row_id not in by_id for row_id in ids):
+        raise HTTPException(status_code=409, detail="ตรวจผลการบันทึกไม่ครบ กรุณาลองบันทึกชุดเดิมอีกครั้ง")
+    return [by_id[row_id] for row_id in ids]
+
+
+@app.post("/api/v1/food-logs/batch", status_code=201, tags=["Food logs"])
+def create_food_log_batch(request: BatchLogRequest, user: AuthenticatedUser = Depends(require_authenticated_user)):
+    # All validation/lookups happen before the single atomic PostgREST insert.
+    rows = [_build_log_row(item, user) for item in request.items]
+    return _insert_batch(rows, request.request_id, user)
+
+
+@app.post("/api/v1/food-logs/copy", status_code=201, tags=["Food logs"])
+def copy_food_logs(request: CopyMealRequest, user: AuthenticatedUser = Depends(require_authenticated_user)):
+    ids = [str(value) for value in request.log_ids]
+    found = _supabase_request("/rest/v1/food_logs", "GET", token=user.access_token,
+        query={"id": f"in.({','.join(ids)})", "user_id": f"eq.{user.id}", "select": _food_log_select()})
+    by_id = {row["id"]: row for row in found}
+    if any(value not in by_id for value in ids):
+        raise HTTPException(status_code=404, detail="ไม่พบรายการต้นฉบับหรือไม่มีสิทธิ์คัดลอก")
+    rows = []
+    for value in ids:
+        old = by_id[value]
+        item = FoodLogRequest.model_validate({**old, "meal_date": request.meal_date,
+            "meal_type": request.meal_type, "logged_at": f"{request.meal_date}T12:00:00+07:00"})
+        rows.append(_build_log_row(item, user, old))
+    return _insert_batch(rows, request.request_id, user)
+
+
+@app.get("/api/v1/food-preferences", tags=["Preferences"])
+def get_food_preferences(user: AuthenticatedUser = Depends(require_authenticated_user)):
+    return _read_all("/rest/v1/food_preferences", user.access_token,
+        {"select": "food_key,preference", "user_id": f"eq.{user.id}", "order": "food_key"})
+
+
+@app.put("/api/v1/food-preferences", tags=["Preferences"])
+def save_food_preference(request: FoodPreferenceRequest, user: AuthenticatedUser = Depends(require_authenticated_user)):
+    if request.custom_food_id:
+        found = _supabase_request("/rest/v1/custom_foods", "GET", token=user.access_token,
+            query={"id": f"eq.{request.custom_food_id}", "user_id": f"eq.{user.id}", "select": "id"})
+        if not found:
+            raise HTTPException(status_code=404, detail="ไม่พบอาหารส่วนตัว")
+    row = {**request.model_dump(mode="json"), "user_id": user.id}
+    return _supabase_request("/rest/v1/food_preferences", "POST", row, user.access_token,
+        {"on_conflict": "user_id,food_key", "select": "food_key,preference"},
+        {"Prefer": "resolution=merge-duplicates,return=representation"})[0]
+
+
+@app.delete("/api/v1/food-preferences/{food_key}", tags=["Preferences"])
+def delete_food_preference(food_key: str, user: AuthenticatedUser = Depends(require_authenticated_user)):
+    _supabase_request("/rest/v1/food_preferences", "DELETE", token=user.access_token,
+        query={"food_key": f"eq.{food_key}", "user_id": f"eq.{user.id}"})
+    return {"status": "ok"}
+
+
+@app.get("/api/v1/weight-logs", tags=["Weight"])
+def get_weight_logs(user: AuthenticatedUser = Depends(require_authenticated_user)):
+    return _read_all("/rest/v1/weight_logs", user.access_token,
+        {"select": "measured_on,weight_kg", "user_id": f"eq.{user.id}", "order": "measured_on"})
+
+
+@app.put("/api/v1/weight-logs", tags=["Weight"])
+def save_weight_log(request: WeightRequest, user: AuthenticatedUser = Depends(require_authenticated_user)):
+    row = {**request.model_dump(mode="json"), "user_id": user.id}
+    return _supabase_request("/rest/v1/weight_logs", "POST", row, user.access_token,
+        {"on_conflict": "user_id,measured_on", "select": "measured_on,weight_kg"},
+        {"Prefer": "resolution=merge-duplicates,return=representation"})[0]
+
+
+@app.delete("/api/v1/weight-logs/{measured_on}", tags=["Weight"])
+def delete_weight_log(measured_on: date, user: AuthenticatedUser = Depends(require_authenticated_user)):
+    _supabase_request("/rest/v1/weight_logs", "DELETE", token=user.access_token,
+        query={"measured_on": f"eq.{measured_on.isoformat()}", "user_id": f"eq.{user.id}"})
+    return {"status": "ok"}
 
 
 BASIS_KEYS = ("serving_size", "serving_unit", "serving_label", "portion_grams")

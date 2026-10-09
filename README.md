@@ -2,20 +2,39 @@
 
 เว็บแอปติดตามโภชนาการสำหรับอาหารไทย ช่วยคำนวณเป้าหมายพลังงาน บันทึกอาหารรายวัน วิเคราะห์รูปอาหารด้วย Gemini และดูแนวโน้มสุขภาพย้อนหลัง
 
-## อัปเดตข้อ 1–4 (9 ตุลาคม 2026)
+## อัปเดต — **9 ตุลาคม 2026**
+
+พัฒนาฟีเจอร์ข้อ 2–5 ตามที่ผู้ใช้อนุมัติ พร้อมเชื่อม frontend, backend และเตรียม migration:
+
+- **ความชอบอาหาร:** ตั้งค่า ชอบ / ไม่สนใจ / ไม่กินอาหารนี้ เพิ่มน้ำหนักอาหารที่ชอบ และกันอาหารที่ไม่สนใจหรือไม่กินออกจากคำแนะนำ สามารถล้างสถานะเพื่อให้กลับมาแนะนำได้
+- **บันทึกหลายรายการและคัดลอกมื้อ:** จัดชุดอาหาร ปรับปริมาณ วันที่ และมื้อก่อนบันทึกได้สูงสุด 30 รายการ คัดลอกเฉพาะรายการที่เลือกจากประวัติ โดยรักษาปริมาณและโภชนาการของบันทึกต้นฉบับ พร้อมใช้ request ID เดิมเมื่อกดลองซ้ำในฟอร์มเดิมเพื่อป้องกันบันทึกซ้ำ
+- **ชุดมื้อแนะนำ:** จับคู่สองรายการจากคะแนนความชอบ ประวัติการกิน และเป้าหมายของมื้อ ใช้เฉพาะอาหารที่มีหน่วยอ้างอิงชัดเจน และให้ผู้ใช้ปรับปริมาณก่อนบันทึก
+- **Insights และน้ำหนัก:** เลือกย้อนหลัง 7/30/90 วัน หรือกำหนดช่วงเองไม่เกิน 366 วัน เพิ่มบันทึกน้ำหนักหนึ่งค่าต่อวัน พร้อมแก้ไข ลบ และดูกราฟแนวโน้ม น้ำหนักที่บันทึกไม่เปลี่ยนเป้าหมายในโปรไฟล์อัตโนมัติ
+- **ฐานข้อมูลและสิทธิ์:** เตรียมตาราง `food_preferences` และ `weight_logs` พร้อม RLS แยกข้อมูลตามเจ้าของ รวมการตรวจสิทธิ์ใน API และ migration ที่รันซ้ำได้
+- **คอนเซปต์ frontend:** เก็บภาพอ้างอิงและแนวทาง Soft Green Dashboard ไว้ใน [เอกสารออกแบบ](docs/design/README.md) สำหรับใช้พัฒนาต่อ
+
+**ผลตรวจในเครื่องล่าสุด:** frontend 73 tests, backend 62 tests และ migration tests สำหรับ fresh install/upgrade ผ่าน; TypeScript และ production build ผ่าน รายละเอียดการตรวจ Supabase จริงและรายการที่ยังรออยู่ใน [รายงานผลตรวจ](docs/verification-2026-10-09.md)
+
+**ก่อนใช้ความชอบและน้ำหนักกับบัญชีจริง:** รัน [20261009_preferences_weights.sql](supabase/migrations/20261009_preferences_weights.sql) หลัง migration เดิม ไฟล์นี้ยังไม่ได้รันบน Supabase ของผู้ใช้ หากตารางใหม่ยังไม่มี แอปจะแจ้งว่าโหลดความชอบ/น้ำหนักไม่สำเร็จ ส่วนการบันทึกอาหารเดิมยังใช้ได้ อ่าน [วิธีเปิดใช้และรายละเอียดข้อ 2–5](docs/features-2-5.md)
+
+**งานที่เลื่อนไว้:** ข้อ 1 ของรายการปรับปรุงล่าสุด ซึ่งเป็นการปรับชื่อไทย หน่วย และข้อมูล food catalog ให้ผู้ใช้จัดการภายหลัง
+
+## อัปเดตข้อ 1–4 เดิม (9 ตุลาคม 2026)
 
 เพิ่มหน่วยอาหารและแปลงปริมาณ อาหารส่วนตัว และแก้บันทึกครบทุกช่อง พร้อม migration และการทดสอบ
 **อ่าน [คู่มือติดตั้งข้อ 1–4](docs/steps-1-4-setup.md) ก่อนเริ่มแอปรุ่นนี้** ต้อง apply migration บน Supabase เดิมก่อน
-การ apply/ตรวจ Supabase จริงยังไม่เสร็จในสภาพแวดล้อมนี้
+ผลตรวจ Supabase ล่าสุด 9 ตุลาคม 2026: RPC รวม literal `%`/`_` ผ่านแล้ว; SQL Editor ยืนยันคอลัมน์ทั้งสามตาราง ดัชนีค้นหาทั้งสาม และ RLS/policy definitions แล้ว ยังรอทดสอบการใช้งานและการอ่าน/แก้ข้ามบัญชีจริง ดู [ผลตรวจล่าสุดและงานที่รอ](docs/verification-2026-10-09.md)
 
 ## System Overview
+
+เพิ่มระบบ [แนะนำอาหารตามประวัติและเป้าหมาย](docs/food-recommendations.md) ในหน้าเพิ่มอาหาร: เลือกมื้อและน้ำหนักความคุ้นเคย/เป้าหมาย ใช้ประวัติในบัญชีเดิมพร้อมเหตุผลและปริมาณอ้างอิง รุ่นล่าสุดเพิ่มความชอบและชุดมื้อตามคู่มือด้านบน
 
 ```text
 Frontend (React UI)
         |
         +---- Backend API (FastAPI; HttpOnly session cookies)
                     |
-                    +---- Supabase Auth + PostgreSQL (profiles, foods, custom_foods, food_logs)
+                    +---- Supabase Auth + PostgreSQL (profiles, foods, custom_foods, food_logs, food_preferences, weight_logs)
                     +---- Gemini Vision API (optional)
 ```
 
@@ -71,6 +90,9 @@ Frontend (React UI)
 - เลือก Meal date เพื่อบันทึกย้อนหลัง
 - เลือก Meal type และปริมาณตามหน่วยอ้างอิง (กรัม/มิลลิลิตร/portion); แปลง portion เป็นกรัมเมื่อมีน้ำหนักจริง
 - เพิ่มอาหารส่วนตัวจากฉลากและเลือกใช้ซ้ำได้
+- แนะนำอาหารตามประวัติ 90 วัน ความชอบโดยตรง และเป้าหมายของมื้อ พร้อมเลือกแนวทางเน้นความคุ้นเคย/สมดุล/ตามเป้าหมาย
+- ตั้งค่า ชอบ / ไม่สนใจ / ไม่กินอาหารนี้ และจัดการอาหารที่ซ่อนจากคำแนะนำ
+- เลือกชุดมื้อแนะนำและปรับปริมาณ หรือจัดชุดเองเพื่อบันทึกสูงสุด 30 รายการพร้อมกัน
 - รองรับอาหารไทย ของหวาน และเครื่องดื่ม
 - เก็บข้อมูลใน Supabase สำหรับผู้ใช้ที่ลงชื่อเข้าใช้; Guest ใช้ข้อมูลใน memory
 
@@ -91,15 +113,17 @@ Frontend (React UI)
 - สรุป Calories, Protein, Carbs และ Fats รายวัน
 - Quick date buttons สำหรับวันที่มีข้อมูล
 - ลบรายการย้อนหลัง และแก้อาหาร/ชื่อ/โภชนาการเฉพาะรายการ/มื้อ/วันที่/ปริมาณได้
+- คัดลอกมื้อไปยังวันที่และมื้อปลายทาง โดยเลือกเฉพาะรายการที่ต้องการได้สูงสุด 30 รายการ
 - ข้อมูล log ของบัญชียังคงอยู่หลัง refresh ผ่าน Supabase
 
 ### Health Insights
 
 - สรุปจำนวนวันที่บันทึก ค่าเฉลี่ยแคลอรี และวันที่เกินเป้าหมาย
-- กราฟวันจันทร์–อาทิตย์ของสัปดาห์ปัจจุบัน
+- เลือกกราฟย้อนหลัง 7/30/90 วัน หรือกำหนดช่วงเองไม่เกิน 366 วัน
+- บันทึก แก้ไข และลบน้ำหนักรายวัน พร้อมกราฟแนวโน้มตามวันที่ชั่ง
 - สารอาหารที่บันทึกวันนี้
 - เมนูทดแทนจาก catalog เฉพาะข้อมูลที่เปรียบเทียบหน่วย/ปริมาณอ้างอิงกันได้
-- คำแนะนำมื้อถัดไปและการออกกำลังกายยังไม่ได้ยืนยันว่ามี flow ครบในโค้ด ZIP ที่ใช้พัฒนารอบนี้
+- เลือกคำแนะนำอาหารสำหรับมื้อที่จะกินได้ในหน้าเพิ่มอาหาร ส่วน flow แนะนำการออกกำลังกายยังไม่ได้เพิ่ม
 
 ### Product Experience
 
@@ -116,27 +140,37 @@ Frontend (React UI)
 ```text
 .
 ├── backend/
-│   ├── main.py              # FastAPI Gemini endpoint และ Supabase JWT verification
-│   ├── requirements.txt     # Python dependencies
-│   ├── requirements-dev.txt # Backend test dependencies
+│   ├── main.py
+│   ├── scripts/verify_supabase.py
+│   ├── tests/               # API, feature, personalization, and verifier tests
+│   ├── requirements.txt
+│   ├── requirements-dev.txt
 │   └── Dockerfile.txt
+├── database-tests/
+│   ├── migrations.test.mjs  # Fresh/upgrade/repeat migration and RLS tests
+│   └── package.json
+├── docs/                    # Setup, features, architecture, and verification
 ├── supabase/
-│   └── schema.sql           # PostgreSQL schema and Row Level Security
+│   ├── schema.sql
+│   ├── migrations/
+│   ├── fndds_foods_curated.csv
+│   └── verify_steps_1_4.sql
 ├── frontend/
-│   ├── index.html           # Vite HTML shell
+│   ├── index.html
 │   ├── package.json
+│   ├── package-lock.json
 │   ├── vite.config.ts
+│   ├── nginx.conf
+│   ├── Dockerfile.txt
 │   └── src/
 │       ├── App.tsx
 │       ├── types.ts
-│       ├── index.css
-│       ├── lib/health.ts
-│       ├── lib/foodLogs.ts
-│       ├── lib/api.ts
-│       └── components/
+│       ├── lib/
+│       └── components/      # UI components and co-located tests
 ├── docker-compose.yaml
+├── start_local.bat
 ├── .env.example
-└── beta1.zip                # Snapshot ก่อนการปรับปรุงชุดใหญ่
+└── README.md
 ```
 
 ## Local Development
@@ -144,8 +178,8 @@ Frontend (React UI)
 ### Supabase Setup
 
 1. รัน `supabase/schema.sql` ใน Supabase Dashboard → SQL Editor
-2. หาก project มี schema เดิมอยู่แล้ว ให้รัน migration `supabase/migrations/20261002_food_catalog_search_index.sql` ใน Supabase Dashboard → SQL Editor เพื่อสร้าง trigram indexes และ RPC สำหรับค้นหารายการอาหาร
-3. จัดเตรียม catalog ในตาราง `public.foods` ผ่านกระบวนการจัดการข้อมูลของ Supabase; แอปค้นหารายการผ่าน backend API และไม่มี CSV/local catalog fallback
+2. หาก project มี schema เดิมอยู่แล้ว ให้รัน `supabase/migrations/20261002_food_catalog_search_index.sql` ตามด้วย `supabase/migrations/20261009_food_units_custom_logs.sql` และ `supabase/migrations/20261009_preferences_weights.sql` ทั้งไฟล์ตามลำดับ แล้วรัน `supabase/verify_steps_1_4.sql` เพื่อตรวจส่วน catalog/custom foods/food logs ใน SQL Editor ของ project/branch ที่ตรงกับ `.env`; ถ้ายังไม่พบตาราง/คอลัมน์ ใช้ `supabase/diagnose_steps_1_4.sql` ตรวจแบบอ่านอย่างเดียวก่อน
+3. จัดเตรียมข้อมูล catalog ในตาราง `public.foods` ผ่านกระบวนการจัดการข้อมูลของ Supabase; แอปไม่มี local catalog fallback และอ่านข้อมูลจาก Supabase ผ่าน backend API เท่านั้น
 4. เปิด Supabase Authentication และกำหนด Site URL/redirect URLs ให้ตรงกับเว็บที่จะใช้งาน ถ้าเปิดยืนยันอีเมล ผู้ใช้ต้องยืนยันอีเมลก่อนมี session
 
 ตั้งค่า Supabase URL และ **publishable key** ไว้ใน backend environment เท่านั้น; frontend เรียก API ของ backend และไม่มี Supabase client/key
@@ -153,7 +187,7 @@ Frontend (React UI)
 ### Frontend
 ```powershell
 Set-Location frontend
-npm install
+npm ci
 npm run dev
 ```
 
@@ -199,11 +233,13 @@ publishable key ถูกใช้โดย backend เท่านั้น; �
 จากนั้นรัน:
 
 ```powershell
-docker compose up --build
+docker compose up --build -d
 ```
 
 - Frontend: `http://localhost:3000`
 - Backend: `http://localhost:8000`
+- ตรวจสถานะด้วย `docker compose ps` และดู log ด้วย `docker compose logs -f`
+- Compose ตั้งชื่อ container ตาม project/service โดยอัตโนมัติ จึงไม่ล็อกชื่อเดียวกันข้าม project; หากรันหลายชุดพร้อมกัน ต้องกำหนด host ports ที่ไม่ซ้ำกัน (เช่น `3001:80` และ `8001:8000`) และปรับ `FRONTEND_ORIGINS` ให้ตรงกับ frontend port
 
 ## API Summary
 
@@ -251,9 +287,9 @@ API key ต้องอยู่ใน backend environment เท่านั้
 - รีเซ็ตรหัสผ่านต้องเพิ่ม URL ของเว็บใน Supabase Authentication → URL Configuration → Redirect URLs
 - ข้อมูลอาหารเดิมที่ไม่มีหน่วยยังแสดง “หน่วยเดิม (ไม่ระบุขนาด)” ต้องตรวจแหล่งอ้างอิงก่อน backfill metadata; ไม่เปลี่ยนค่าโภชนาการเก่าอัตโนมัติ
 - ยังไม่มี cloud hosting/production deployment ที่ผูกกับ project/โดเมนจริง
-- Gemini scan จำกัดเริ่มต้น 10 ครั้งต่อผู้ใช้ต่อชั่วโมง (`GEMINI_RATE_LIMIT_REQUESTS`, `GEMINI_RATE_LIMIT_WINDOW_SECONDS`) และ Nginx จำกัด API ที่ 30 request/นาทีต่อ IP พร้อม burst 10; limiter ใน backend เก็บใน memory จึงไม่แชร์ข้าม worker/replica และรีเซ็ตเมื่อ restart ควรใช้ distributed/API-gateway rate limit ก่อนเปิด production
+- Gemini scan จำกัดเริ่มต้น 10 ครั้งต่อผู้ใช้ต่อชั่วโมง (`GEMINI_RATE_LIMIT_REQUESTS`, `GEMINI_RATE_LIMIT_WINDOW_SECONDS`) และ Nginx จำกัด API ที่ 120 request/นาทีต่อ IP พร้อม burst 30; limiter ใน backend เก็บใน memory จึงไม่แชร์ข้าม worker/replica และรีเซ็ตเมื่อ restart ควรใช้ distributed/API-gateway rate limit ก่อนเปิด production
 - Frontend coverage ครอบคลุม source TypeScript/TSX ทั้งหมด โดยตั้ง threshold แยกอย่างน้อย 70% สำหรับ statements, branches, functions และ lines
-- ผลทดสอบรอบนี้: Frontend 50 tests ผ่าน; coverage statements 86.81%, branches 78.28%, functions 80.74%, lines 88.14%; Backend 47 tests ผ่าน และ coverage 92.46% (ไม่ใช่การรับประกันว่าไม่มีบั๊ก)
+- ผลตรวจในเครื่องล่าสุด: Frontend 73 tests, Backend 62 tests และ migration tests สำหรับ fresh install/upgrade ผ่าน; TypeScript และ production build ผ่าน การตรวจครั้งนี้ไม่ได้รัน coverage และยังไม่ใช่การตรวจรับ flow สองบัญชีบน Supabase จริงหรือภาพ UI desktop/mobile
 - ค่าโภชนาการจาก Gemini เป็นค่าประมาณ ผู้ใช้ควรตรวจสอบ portion size
 
 ## Validation

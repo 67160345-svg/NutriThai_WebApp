@@ -4,7 +4,7 @@
 
 ## สถานะส่งมอบ
 
-- ข้อ 1: โค้ดค้นหา, migration, SQL ตรวจสอบ และสคริปต์ตรวจ RPC พร้อมแล้ว; ทดสอบฐานข้อมูลจำลองแล้ว **ยังไม่ได้ apply หรือทดสอบบน Supabase ของผู้ใช้**
+- ข้อ 1: โค้ดและ migration พร้อม; ผลตรวจ Supabase ล่าสุดเห็นคอลัมน์ใหม่และ literal `%`/`_` ผ่านแล้ว SQL Editor ยืนยันดัชนีและ RLS/policy definitions แล้ว ยังรอทดสอบสองบัญชี ดู [ผลตรวจล่าสุด](verification-2026-10-09.md)
 - ข้อ 2: เพิ่มหน่วยอ้างอิงและการแปลงปริมาณ พร้อมเก็บ snapshot หน่วยในประวัติ
 - ข้อ 3: เพิ่มอาหารส่วนตัวและนำกลับมาใช้ซ้ำ เก็บตามบัญชีพร้อม RLS; Guest เก็บชั่วคราวใน memory
 - ข้อ 4: แก้อาหาร ชื่อ/โภชนาการเฉพาะบันทึก มื้อ วันที่ และปริมาณได้ Dashboard/History ใช้ข้อมูลที่บันทึกสำเร็จจาก API
@@ -18,11 +18,11 @@
 3. `supabase/verify_steps_1_4.sql` (อ่านข้อมูลเพื่อตรวจคอลัมน์ ดัชนี สิทธิ์ และค้นหา)
 
 ถ้าเคยทำข้อแรกแล้ว สามารถรันซ้ำได้ migration ใหม่ใช้ transaction และไม่ลบข้อมูลอาหาร/ประวัติเดิม
-สำหรับ project ใหม่ รัน `supabase/schema.sql` เพียงไฟล์เดียว ซึ่งรวม schema รุ่นล่าสุด แล้วนำเข้าข้อมูลอาหาร
+สำหรับ project ใหม่ รัน `supabase/schema.sql` เพียงไฟล์เดียว ซึ่งรวม schema รุ่นล่าสุด แล้วจัดเตรียมรายการอาหารในตาราง `public.foods` ผ่านกระบวนการจัดการข้อมูลของ Supabase
 ไม่ต้องรัน SQL สำหรับสร้าง role/auth จากชุดทดสอบบน Supabase จริง
 
 **อย่าเริ่ม Backend รุ่นนี้ก่อน migration ใหม่สำเร็จ** เพราะแอปอ่านตาราง `custom_foods` และคอลัมน์หน่วยใหม่ขณะโหลดบัญชี
-สภาพแวดล้อมที่พัฒนาไม่มี Supabase URL/key หรือ direct database credentials ที่ใช้งานได้ และไฟล์ตั้งค่าที่แนบอยู่ใน archive เข้ารหัส จึงไม่สามารถยืนยันฐานจริงได้
+รอบล่าสุดมี `.env` ที่ root ใช้ตรวจ API แบบอ่านอย่างเดียวแล้ว แต่ยังไม่มีช่องทาง SQL หรือผล SQL Editor เพื่อยืนยัน migration/project/branch/COMMIT หาก schema ยังไม่พร้อม ใช้ `supabase/diagnose_steps_1_4.sql` ตรวจแบบอ่านอย่างเดียวก่อน โดยไม่เดาว่าเกิด rollback หรือ schema cache ผิด
 
 ## 2. ตั้งค่าและเริ่มแอป
 
@@ -43,15 +43,15 @@ cd ..
 
 ## 3. ตรวจการค้นหากับ project จริง
 
-ใน terminal ที่ตั้ง `SUPABASE_URL` และ `SUPABASE_PUBLISHABLE_KEY` แล้ว:
+จาก project root ใช้ `.env` โดยไม่แสดงค่า secret:
 
 ```powershell
-python backend/scripts/verify_supabase.py
+python backend/scripts/verify_supabase.py --env-file .env
 ```
 
 สคริปต์อ่านอย่างเดียว ตรวจคอลัมน์และ RPC ด้วยคำค้นไทย/อังกฤษ หมวด และ limit โดยไม่แสดง key
 ผลลัพธ์ 0 แถวอาจหมายถึง catalog ไม่มีชื่อนั้น ให้เลือกคำค้นที่มีอยู่จริงเพื่อทดสอบเพิ่มเติม
-สคริปต์นี้ไม่โหลด `.env` เอง ให้ export environment ของ terminal ก่อน
+หากไม่ส่ง `--env-file` สคริปต์ใช้ environment ของ terminal อย่างเดียว; เมื่อส่งไฟล์ ค่าที่ตั้งไว้ใน terminal มีลำดับเหนือกว่า `.env` สคริปต์ตรวจต่อหลัง error แรกและรายงาน HTTP/code โดยไม่แสดง body/key ตรวจตารางส่วนตัวด้วย anon ไม่ยืนยัน RLS สองบัญชี
 ตรวจ query plan ด้วย `supabase/verify_steps_1_4.sql`; ตารางเล็กหรือคำค้นกว้างอาจใช้ sequential scan ได้ตามปกติ
 
 ## หน่วยและการแปลงปริมาณ
@@ -103,8 +103,8 @@ python backend/scripts/verify_supabase.py
 
 ## การทดสอบ
 
-ผลตรวจรอบส่งมอบ: Frontend 50 tests, Backend 47 tests ผ่าน; TypeScript และ production build ผ่าน
-Frontend coverage: statements 86.81%, branches 78.28%, functions 80.74%, lines 88.14%; Backend coverage 92.46%
+ผลตรวจล่าสุดในเครื่อง: Frontend 50 tests, Backend 53 tests (รวม verifier 6 tests) ผ่าน; TypeScript และ production build ผ่าน
+Frontend coverage: statements 86.81%, branches 78.28%, functions 80.74%, lines 88.14%; Backend `main.py` coverage 92.29%
 SQL tests ผ่านทั้ง fresh install และ upgrade รวมรันซ้ำ ตรวจ index และ RLS สองบัญชี
 
 
@@ -115,7 +115,7 @@ npm ci
 npm run test:coverage
 npm run build
 cd ../backend
-python -m pytest --cov=main --cov-fail-under=80
+python -m pytest tests -p no:cacheprovider --cov=main --cov-fail-under=80
 cd ../database-tests
 npm ci
 npm test
@@ -123,5 +123,5 @@ npm test
 
 ฐานทดสอบใช้ PGlite (PostgreSQL แบบ embedded) พร้อม pg_trgm และ auth fixture สองบัญชี ทดสอบ schema ใหม่ การอัปเกรด การรัน migration ซ้ำ คำค้นไทย/อังกฤษ/อักขระพิเศษ ดัชนี และ RLS
 ไม่ใช่ผลทดสอบ integration กับ Supabase hosted หรือ Gemini จริง
-การตรวจ UI เป็น automated component/integration tests ใน jsdom; ยังไม่ได้ตรวจภาพหน้าจอด้วย browser เนื่องจากดาวน์โหลด browser runtime ไม่สำเร็จ
+การตรวจ UI เป็น automated component/integration tests ใน jsdom; รอบล่าสุดยังตรวจภาพหน้าจอ desktop/mobile ไม่ได้ เพราะไม่มี browser ที่เชื่อมต่อกับเครื่องมือ UI
 ก่อนเปิดใช้งานจริง ให้ลองสองบัญชี สมัคร/เข้าสู่ระบบ เพิ่มอาหารส่วนตัว refresh ใช้ซ้ำ เปลี่ยนมื้อ/วันที่ และยืนยันว่าอีกบัญชีมองไม่เห็นข้อมูล

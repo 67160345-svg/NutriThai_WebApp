@@ -267,6 +267,46 @@ def test_password_update_and_logout_use_authenticated_token(monkeypatch):
     assert calls[1][0][0] == "/auth/v1/logout"
 
 
+def test_logout_clears_cookies_when_supabase_session_is_already_missing(monkeypatch):
+    user = main.AuthenticatedUser("user-1", "signed-access-token", "person", "person@example.com")
+    main.app.dependency_overrides[main.require_authenticated_user] = lambda: user
+
+    def missing_session(*_args, **_kwargs):
+        raise HTTPException(
+            status_code=403,
+            detail="Session from session_id claim in JWT does not exist",
+        )
+
+    monkeypatch.setattr(main, "_supabase_request", missing_session)
+    try:
+        response = client.post("/api/v1/auth/logout")
+    finally:
+        main.app.dependency_overrides.clear()
+        client.cookies.clear()
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}
+    assert all("max-age=0" in cookie.lower() for cookie in response.headers.get_list("set-cookie"))
+
+
+def test_logout_does_not_hide_unrelated_supabase_errors(monkeypatch):
+    user = main.AuthenticatedUser("user-1", "signed-access-token", "person", "person@example.com")
+    main.app.dependency_overrides[main.require_authenticated_user] = lambda: user
+
+    def upstream_failure(*_args, **_kwargs):
+        raise HTTPException(status_code=502, detail="Supabase unavailable")
+
+    monkeypatch.setattr(main, "_supabase_request", upstream_failure)
+    try:
+        response = client.post("/api/v1/auth/logout")
+    finally:
+        main.app.dependency_overrides.clear()
+        client.cookies.clear()
+
+    assert response.status_code == 502
+    assert response.json()["detail"] == "Supabase unavailable"
+
+
 def test_supabase_request_maps_success_errors_and_connection_failures(monkeypatch):
     monkeypatch.setattr(main, "SUPABASE_URL", "https://project.supabase.co")
     monkeypatch.setattr(main, "SUPABASE_PUBLISHABLE_KEY", "public-key")
