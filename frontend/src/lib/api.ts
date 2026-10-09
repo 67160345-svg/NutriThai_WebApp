@@ -6,6 +6,10 @@ export interface ApiUser {
   username: string;
 }
 
+export class ApiError extends Error {
+  constructor(message: string, public status: number) { super(message); }
+}
+
 async function refreshSession(): Promise<boolean> {
   const response = await fetch(`${API_BASE}/api/v1/auth/refresh`, {
     method: "POST",
@@ -51,7 +55,7 @@ export async function apiJson<T>(path: string, init: RequestInit = {}): Promise<
     const message = Array.isArray(detail)
       ? detail.map((item: { msg?: string }) => item.msg || "ข้อมูลไม่ถูกต้อง").join(" · ")
       : typeof detail === "string" ? detail : `คำขอไม่สำเร็จ (${response.status})`;
-    throw new Error(message);
+    throw new ApiError(message, response.status);
   }
   return result as T;
 }

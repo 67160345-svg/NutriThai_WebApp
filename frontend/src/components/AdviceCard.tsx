@@ -1,25 +1,37 @@
 import { basisLabel } from "../lib/portions";
-import { Food, FoodLog, HealthProfile } from "../types";
+import { useState } from "react";
+import { Food, FoodLog, HealthProfile, WeightLog, FoodPreferences } from "../types";
+import WeightTracker from "./WeightTracker";
+import { insightDates, rollingStart } from "../lib/insights";
+import { foodKey } from "../lib/recommendations";
 import { getTotals } from "../lib/health";
 import { localDateKey } from "../lib/foodLogs";
 
 interface Props {
+  weights?: WeightLog[];
+  onSaveWeight?: (weight: WeightLog) => Promise<void>;
+  onDeleteWeight?: (date: string) => Promise<void>;
+  preferences?: FoodPreferences;
+  recommendationsReady?: boolean;
   healthProfile: HealthProfile;
   logs: FoodLog[];
   foods: Food[];
 }
 
-export default function AdviceCard({ healthProfile, logs, foods }: Props) {
-  const weekStart = new Date();
-  weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7));
-  const weekly = Array.from({ length: 7 }, (_, index) => {
-    const date = new Date(weekStart);
-    date.setDate(date.getDate() + index);
-    const key = localDateKey(date);
+export default function AdviceCard({ healthProfile, logs, foods, weights = [], onSaveWeight, onDeleteWeight, preferences = {}, recommendationsReady = true }: Props) {
+  const todayKey = localDateKey(new Date());
+  const [range, setRange] = useState("7");
+  const [customStart, setCustomStart] = useState(rollingStart(todayKey, 7));
+  const [customEnd, setCustomEnd] = useState(todayKey);
+  const start = range === "custom" ? customStart : rollingStart(todayKey, Number(range));
+  const end = range === "custom" ? customEnd : todayKey;
+  const dates = end <= todayKey ? insightDates(start, end) : [];
+  const weekly = dates.map(key => {
+    const date = new Date(`${key}T12:00:00`);
     const dayLogs = logs.filter((log) => localDateKey(new Date(log.loggedAt)) === key);
     return {
       key,
-      label: date.toLocaleDateString("th-TH", { weekday: "short" }),
+      label: date.toLocaleDateString("th-TH", { day: "numeric", month: "numeric" }),
       totals: getTotals(dayLogs),
       hasLogs: dayLogs.length > 0,
     };
@@ -30,12 +42,11 @@ export default function AdviceCard({ healthProfile, logs, foods }: Props) {
     : 0;
   const maxCalories = Math.max(healthProfile.calorieGoal, ...weekly.map((day) => day.totals.calories), 1);
   const highCalorieDays = trackedDays.filter((day) => day.totals.calories > healthProfile.calorieGoal).length;
-  const todayKey = localDateKey(new Date());
   const todayLogs = logs.filter((log) => localDateKey(new Date(log.loggedAt)) === todayKey);
   const todayTotals = getTotals(todayLogs);
   const sourceFood = todayLogs.find((log) => log.food.category === "food")?.food;
-  const menuSwaps = sourceFood
-    ? foods.filter((food) => food.category === "food" && food.id !== sourceFood.id && food.servingUnit === sourceFood.servingUnit &&
+  const menuSwaps = sourceFood && recommendationsReady
+    ? foods.filter((food) => !["avoid", "not_interested"].includes(preferences[foodKey(food) ?? ""]) && food.category === "food" && food.id !== sourceFood.id && food.servingUnit === sourceFood.servingUnit &&
       food.servingSize === sourceFood.servingSize &&
       (food.servingUnit === "g" || food.servingUnit === "ml" ||
         (Boolean(food.portionGrams) && food.portionGrams === sourceFood.portionGrams)) &&
@@ -46,18 +57,21 @@ export default function AdviceCard({ healthProfile, logs, foods }: Props) {
     <div className="mx-auto w-full max-w-[1160px] px-4 py-7 sm:px-8">
       <div className="mb-5">
         <h1 className="text-2xl font-bold text-[#1a2820]">ข้อมูลเชิงลึก</h1>
-        <p className="mt-1 text-sm text-[#596c5c]">แนวโน้มจากอาหารที่คุณบันทึกไว้ในช่วง 7 วันที่ผ่านมา</p>
+        <p className="mt-1 text-sm text-[#596c5c]">แนวโน้มอาหารและน้ำหนักในช่วง {start} ถึง {end}</p>
+        <label className="mt-3 block text-sm">ช่วงเวลาข้อมูลเชิงลึก<select value={range} onChange={e => setRange(e.target.value)} className="ml-2 rounded-lg border bg-white p-2"><option value="7">7 วันล่าสุด</option><option value="30">30 วันล่าสุด</option><option value="90">90 วันล่าสุด</option><option value="custom">กำหนดเอง</option></select></label>
+        {range === "custom" && <div className="mt-3 flex flex-wrap gap-3"><label>วันเริ่มต้น<input type="date" value={customStart} max={customEnd} onChange={e => setCustomStart(e.target.value)} className="ml-2 rounded border p-2" /></label><label>วันสิ้นสุด<input type="date" value={customEnd} max={todayKey} onChange={e => setCustomEnd(e.target.value)} className="ml-2 rounded border p-2" /></label></div>}
+        {!dates.length && <p role="alert" className="mt-2 text-sm text-rose-700">เลือกช่วงวันที่ที่ถูกต้อง ไม่เกิน 366 วัน และไม่เกินวันนี้</p>}
       </div>
 
       <section className="mb-5 rounded-[22px] border border-[#e5e2da] bg-white p-5 shadow-sm sm:p-6" aria-labelledby="weekly-calories-title">
-        <h2 id="weekly-calories-title" className="text-base font-bold text-[#1a2820]">แคลอรีรายสัปดาห์</h2>
+        <h2 id="weekly-calories-title" className="text-base font-bold text-[#1a2820]">แคลอรีตามช่วงเวลาที่เลือก</h2>
         <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-[#596c5c]">
           <span className="flex items-center gap-2"><i className="h-2.5 w-2.5 rounded-full bg-[#2d6e3e]" />รับประทาน</span>
           <span className="flex items-center gap-2"><i className="h-px w-4 border-t border-dashed border-[#d97706]" />เป้าหมาย {healthProfile.calorieGoal.toLocaleString()} kcal</span>
         </div>
-        <div className="relative mt-4">
+        <div className="mt-4 overflow-x-auto"><div className="relative" style={{ minWidth: `${weekly.length * 32}px` }}>
           <div className="pointer-events-none absolute inset-x-0 border-t border-dashed border-[#d97706]/70" style={{ bottom: `${(healthProfile.calorieGoal / maxCalories) * 100}%` }} />
-          <div className="grid h-48 grid-cols-7 items-end gap-2 sm:h-56 sm:gap-4" role="img" aria-label="กราฟแคลอรีรายวันในช่วง 7 วันที่ผ่านมา">
+          <div className="grid h-48 items-end gap-2 sm:h-56 sm:gap-4" style={{ gridTemplateColumns: `repeat(${Math.max(weekly.length, 1)}, minmax(0, 1fr))` }} role="img" aria-label={`กราฟแคลอรีรายวัน ${start} ถึง ${end}`}>
             {weekly.map((day) => {
               const height = day.totals.calories ? Math.max(4, (day.totals.calories / maxCalories) * 100) : 2;
               return (
@@ -71,9 +85,9 @@ export default function AdviceCard({ healthProfile, logs, foods }: Props) {
               );
             })}
           </div>
-        </div>
+        </div></div>
         <div className="mt-3 flex flex-wrap justify-between gap-2 border-t border-[#edf4ee] pt-3 text-xs text-[#596c5c]">
-          <span>บันทึกแล้ว {trackedDays.length}/7 วัน</span>
+          <span>บันทึกแล้ว {trackedDays.length}/{weekly.length} วัน</span>
           <span>เฉลี่ย {averageCalories ? `${averageCalories.toLocaleString()} kcal` : "ยังไม่มีข้อมูล"}</span>
           <span>เกินเป้าหมาย {highCalorieDays} วัน</span>
         </div>
@@ -98,7 +112,7 @@ export default function AdviceCard({ healthProfile, logs, foods }: Props) {
               <span aria-hidden="true" className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#edf4ee] text-xl">◷</span>
               <div>
                 <h3 className="text-sm font-semibold text-[#1a2820]">ความสม่ำเสมอในการบันทึก</h3>
-                <p className="mt-1 text-sm leading-relaxed text-[#596c5c]">สัปดาห์นี้คุณบันทึกอาหาร {trackedDays.length} จาก 7 วัน ค่าเฉลี่ยแคลอรีคำนวณจากวันที่มีรายการเท่านั้น</p>
+                <p className="mt-1 text-sm leading-relaxed text-[#596c5c]">ช่วงนี้คุณบันทึกอาหาร {trackedDays.length} จาก {weekly.length} วัน ค่าเฉลี่ยแคลอรีคำนวณจากวันที่มีรายการเท่านั้น</p>
               </div>
             </article>
             <article className="flex gap-3">
@@ -124,6 +138,7 @@ export default function AdviceCard({ healthProfile, logs, foods }: Props) {
         )}
       </section>
 
+      {dates.length > 0 && <WeightTracker weights={weights} start={start} end={end} onSave={onSaveWeight} onDelete={onDeleteWeight} />}
       {menuSwaps.length > 0 && sourceFood && (
         <section className="rounded-[22px] border border-[#e5e2da] bg-white p-5 shadow-sm sm:p-6">
           <h2 className="text-base font-bold text-[#1a2820]">ไอเดียเมนูไทยสำหรับมื้อถัดไป</h2>

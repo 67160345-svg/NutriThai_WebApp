@@ -1,5 +1,9 @@
 import { useState, useEffect } from "react";
-import { Food, FoodLog, MealType, FoodUnit } from "../types";
+import { Food, FoodLog, MealType, FoodUnit, HealthProfile, FoodPreferences, FoodPreference, MealItem } from "../types";
+import FoodRecommendations from "./FoodRecommendations";
+import FoodPreferenceButtons from "./FoodPreferenceButtons";
+import MealComposer from "./MealComposer";
+import { foodKey } from "../lib/recommendations";
 import { apiFetch } from "../lib/api";
 import { localDateKey, readFoods } from "../lib/foodLogs";
 
@@ -8,6 +12,12 @@ import CustomFoodForm from "./CustomFoodForm";
 import { basisLabel, toServings, validServings } from "../lib/portions";
 
 interface Props {
+  recommendationsReady?: boolean;
+  preferences?: FoodPreferences;
+  onPreference?: (food: Food, value: FoodPreference | null) => Promise<void>;
+  onAddBatch?: (logs: FoodLog[], requestId: string) => Promise<void>;
+  logs?: FoodLog[];
+  healthProfile?: HealthProfile;
   customFoods?: Food[];
   onCreateCustomFood?: (food: Food) => Promise<Food>;
   foods: Food[];
@@ -40,7 +50,9 @@ function MacroPills({ food }: { food: Food }) {
   );
 }
 
-export default function FoodLogger({ onAddLog, isAuthenticated, foods, initialTab = "search", scanOnly = false, customFoods = [], onCreateCustomFood }: Props) {
+export default function FoodLogger({ onAddLog, isAuthenticated, foods, initialTab = "search", scanOnly = false, customFoods = [], onCreateCustomFood, logs = [], healthProfile, preferences = {}, onPreference, onAddBatch, recommendationsReady = true }: Props) {
+  const [draft, setDraft] = useState<MealItem[]>([]);
+  const [batchLocked, setBatchLocked] = useState(false);
   const [tab, setTab] = useState<"search" | "scan" | "custom">(initialTab);
   const [query, setQuery] = useState("");
   const [selectedFood, setSelectedFood] = useState<Food | null>(null);
@@ -104,9 +116,9 @@ export default function FoodLogger({ onAddLog, isAuthenticated, foods, initialTa
 
   const results = query.trim() && tab === "search" ? searchResults : [];
 
-  const handleSelect = (food: Food) => {
+  const handleSelect = (food: Food, suggestedServings = 1) => {
     setSelectedFood(food);
-    setQuantity(String(food.servingSize ?? 1));
+    setQuantity(String(Number(((food.servingSize ?? 1) * suggestedServings).toFixed(6))));
     setQuantityUnit(food.servingUnit ?? "portion");
     setSaveError("");
     setAdded(false);
@@ -201,6 +213,9 @@ export default function FoodLogger({ onAddLog, isAuthenticated, foods, initialTa
 
   return (
     <div className="mx-auto w-full max-w-[720px] px-4 py-7 sm:px-8">
+      {!scanOnly && draft.length > 0 && onAddBatch && <MealComposer items={draft} onChange={setDraft} onSave={onAddBatch} initialDate={logDate} initialMeal={mealType} onLockChange={setBatchLocked} onDone={() => { setDraft([]); setBatchLocked(false); setAdded(true); }} />}
+      <fieldset disabled={batchLocked} className="min-w-0 disabled:opacity-50">
+      {saveError && !selectedFood && <p role="alert" className="text-sm text-rose-700">{saveError}</p>}
       {/* Header */}
       {scanOnly ? (
         <div className="mb-5">
@@ -327,6 +342,14 @@ export default function FoodLogger({ onAddLog, isAuthenticated, foods, initialTa
           )}
 
           {!query.trim() && !selectedFood && (
+            <>
+            {!recommendationsReady && <p className="text-sm text-amber-800">ยังโหลดความชอบไม่ได้ จึงพักคำแนะนำไว้ก่อน</p>}
+            {healthProfile && recommendationsReady && <FoodRecommendations foods={foods} customFoods={customFoods} logs={logs} profile={healthProfile} date={logDate} meal={mealType} category={category} onMealChange={setMealType} onSelect={handleSelect} preferences={preferences} onPreference={onPreference} onPlan={onAddBatch ? items => { if (draft.length + items.length > 30) { setSaveError("เลือกได้ไม่เกิน 30 รายการต่อชุด"); return; } setDraft([...draft, ...items]); } : undefined} />}
+            {onPreference && Object.keys(preferences).length > 0 && <details className="rounded-xl border bg-white p-3">
+              <summary className="cursor-pointer text-sm">จัดการความชอบและอาหารที่ซ่อน</summary>
+              {[...foods, ...customFoods].filter(food => preferences[foodKey(food) ?? ""]).map(food => <div key={foodKey(food)} className="mt-3"><p className="mb-1 text-sm">{food.nameTh}</p><FoodPreferenceButtons food={food} value={preferences[foodKey(food)!]} onChange={onPreference} /></div>)}
+            </details>}
+            <h3 className="text-sm font-semibold text-[#596c5c]">รายการอาหาร</h3>
             <div className="space-y-2">
               {foods.filter((food) => category === "all" || food.category === category).slice(0, 15).map((food) => (
                 <button
@@ -349,6 +372,7 @@ export default function FoodLogger({ onAddLog, isAuthenticated, foods, initialTa
                 </button>
               ))}
             </div>
+            </>
           )}
         </div>
       )}
@@ -548,6 +572,8 @@ export default function FoodLogger({ onAddLog, isAuthenticated, foods, initialTa
       {selectedFood && (
         <div className="space-y-4 rounded-[22px] border border-[#e5e2da] bg-white p-5 shadow-sm">
           <div className="text-xs font-semibold uppercase tracking-wider text-[#596c5c]">บันทึกอาหาร</div>
+          <FoodPreferenceButtons food={selectedFood} value={preferences[foodKey(selectedFood) ?? ""]} onChange={onPreference} />
+          {preferences[foodKey(selectedFood) ?? ""] === "avoid" && <p className="text-sm text-amber-800">คุณตั้งว่าไม่กินอาหารนี้ ระบบจะไม่แนะนำ แต่ยังเลือกบันทึกด้วยตัวเองได้</p>}
           {saveError && <div role="alert" className="rounded-lg bg-rose-500/10 p-2 text-xs text-rose-300">{saveError}</div>}
 
           <div className="flex items-center gap-3 rounded-2xl bg-[#f8f5ef] p-4">
@@ -603,6 +629,7 @@ export default function FoodLogger({ onAddLog, isAuthenticated, foods, initialTa
           </div>
 
           <QuantityInput food={selectedFood} quantity={quantity} unit={quantityUnit} onChange={(value, unit) => { setQuantity(value); setQuantityUnit(unit); }} />
+          {!scanOnly && onAddBatch && <button type="button" disabled={!validServings(servings) || draft.length >= 30} onClick={() => { setDraft([...draft, { food: selectedFood, servings }]); setSelectedFood(null); setQuery(""); }} className="w-full rounded-xl border border-[#2d6e3e] p-3 font-semibold text-[#2d6e3e] disabled:opacity-50">เพิ่มในชุดมื้อ ({draft.length}/30)</button>}
           {scanOnly && <label className="block text-sm">วันที่รับประทาน<input type="date" required max={localDateKey(new Date())} value={logDate} onChange={e => setLogDate(e.target.value)} className="ml-2 rounded-lg border p-2" /></label>}
 
           <div className="sticky bottom-[76px] z-20 -mx-2 flex items-center justify-between gap-3 rounded-[18px] border border-[#e5e2da] bg-white/95 p-3 shadow-lg backdrop-blur md:bottom-4">
@@ -622,6 +649,7 @@ export default function FoodLogger({ onAddLog, isAuthenticated, foods, initialTa
         </div>
       )}
 
+      </fieldset>
       {added && (
         <div className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-emerald-500 text-white px-5 py-2.5 rounded-full text-sm font-semibold shadow-lg shadow-emerald-500/30 animate-bounce">
           ✓ เพิ่มเรียบร้อย!

@@ -165,6 +165,20 @@ export async function createFoodLog(log: FoodLog) {
   return mapLog(data);
 }
 
+export async function createFoodLogBatch(logs: FoodLog[], requestId: string): Promise<FoodLog[]> {
+  const rows = await apiJson<FoodLogRow[]>("/api/v1/food-logs/batch", {
+    method: "POST", body: JSON.stringify({ request_id: requestId, items: logs.map(logPayload) }),
+  });
+  return rows.map(mapLog);
+}
+
+export async function copyMealLogs(logIds: string[], date: string, meal: MealType, requestId: string): Promise<FoodLog[]> {
+  const rows = await apiJson<FoodLogRow[]>("/api/v1/food-logs/copy", {
+    method: "POST", body: JSON.stringify({ request_id: requestId, log_ids: logIds, meal_date: date, meal_type: meal }),
+  });
+  return rows.map(mapLog);
+}
+
 export async function updateFoodLog(log: FoodLog) {
   const data = await apiJson<FoodLogRow>(`/api/v1/food-logs/${encodeURIComponent(log.id)}`, {
     method: "PUT", body: JSON.stringify(logPayload(log)),

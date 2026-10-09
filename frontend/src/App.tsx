@@ -1,6 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FoodLog, HealthProfile, Page } from "./types";
-import type { Food } from "./types";
+import type { Food, FoodPreference, FoodPreferences, MealType, WeightLog } from "./types";
+import { readPreferences, savePreference, readWeights, saveWeight, deleteWeight } from "./lib/personalization";
+import { foodKey } from "./lib/recommendations";
+import { createFoodLogBatch, copyMealLogs } from "./lib/foodLogs";
 import { computeHealthMetrics } from "./lib/health";
 import { createFoodLog, deleteFoodLog, readFoodLogs, readFoods, readProfile, saveProfile, updateFoodLogServings, updateFoodLog, readCustomFoods, createCustomFood } from "./lib/foodLogs";
 import { acceptAuthCallback, apiJson, signOut as signOutApi } from "./lib/api";
@@ -27,6 +30,12 @@ const guestProfile: HealthProfile = {
 };
 
 export default function App() {
+  const dataVersion = useRef(0);
+  const [preferences, setPreferences] = useState<FoodPreferences>({});
+  const [weights, setWeights] = useState<WeightLog[]>([]);
+  const [preferencesReady, setPreferencesReady] = useState(false);
+  const [weightsReady, setWeightsReady] = useState(false);
+  const [extrasError, setExtrasError] = useState("");
   const [healthProfile, setHealthProfile] = useState<HealthProfile | null>(null);
   const [logs, setLogs] = useState<FoodLog[]>([]);
   const [foodCatalog, setFoodCatalog] = useState<Food[]>([]);
@@ -47,7 +56,18 @@ export default function App() {
     localStorage.removeItem("nutrithai_logs");
   }, []);
 
+  const loadExtras = async (version: number) => {
+    const [prefs, weightRows] = await Promise.allSettled([readPreferences(), readWeights()]);
+    if (version !== dataVersion.current) return;
+    setPreferencesReady(prefs.status === "fulfilled"); setWeightsReady(weightRows.status === "fulfilled");
+    if (prefs.status === "fulfilled") setPreferences(prefs.value);
+    if (weightRows.status === "fulfilled") setWeights(weightRows.value);
+    setExtrasError(prefs.status === "rejected" || weightRows.status === "rejected" ? "โหลดความชอบหรือน้ำหนักไม่สำเร็จ ลองโหลดข้อมูลใหม่" : "");
+  };
+
   const loadAuthenticatedUser = async (user: ApiUser) => {
+    const version = ++dataVersion.current;
+    setPreferences({}); setWeights([]); setPreferencesReady(false); setWeightsReady(false); setExtrasError("");
     setAccount(user);
     setDisplayName(localStorage.getItem(`nutrithai_display_name:${user.id}`) || user.username);
     setIsGuest(false);
@@ -66,6 +86,7 @@ export default function App() {
       setCustomFoods(personalFoods);
       setFoodCatalog(catalog);
       setShowOnboarding(!profile);
+      await loadExtras(version);
     } catch (error) {
       setErrorMessage(`โหลดข้อมูลบัญชีไม่สำเร็จ: ${error instanceof Error ? error.message : "เกิดข้อผิดพลาด"}`);
       setHealthProfile(null);
@@ -125,6 +146,45 @@ export default function App() {
     setLogs((previous) => [...previous, savedLog]);
   };
 
+  const mergeSavedLogs = (saved: FoodLog[]) => setLogs(previous => {
+    const merged = new Map(previous.map(log => [log.id, log]));
+    saved.forEach(log => merged.set(log.id, log)); return [...merged.values()];
+  });
+  const addBatch = async (items: FoodLog[], requestId: string) => {
+    if (!isGuest && !account) throw new Error("กรุณาเข้าสู่ระบบ");
+    const version = dataVersion.current;
+    const saved = isGuest ? items.map((log, i) => ({ ...log, id: `${requestId}-${i}` })) : await createFoodLogBatch(items, requestId);
+    if (version === dataVersion.current) mergeSavedLogs(saved);
+  };
+  const copyMeal = async (ids: string[], date: string, meal: MealType, requestId: string) => {
+    if (!isGuest && !account) throw new Error("กรุณาเข้าสู่ระบบ");
+    const version = dataVersion.current;
+    const saved = isGuest ? ids.map((id, i) => {
+      const old = logs.find(log => log.id === id); if (!old) throw new Error("ไม่พบรายการต้นฉบับ");
+      return { ...old, id: `${requestId}-${i}`, mealType: meal, loggedAt: new Date(`${date}T12:00:00`) };
+    }) : await copyMealLogs(ids, date, meal, requestId);
+    if (version === dataVersion.current) mergeSavedLogs(saved);
+  };
+  const changePreference = async (food: Food, value: FoodPreference | null) => {
+    if (!isGuest && !account) throw new Error("กรุณาเข้าสู่ระบบ");
+    const key = foodKey(food); if (!key) return;
+    const version = dataVersion.current;
+    if (!isGuest) await savePreference(food, value);
+    if (version === dataVersion.current) setPreferences(previous => { const next = { ...previous }; if (value) next[key] = value; else delete next[key]; return next; });
+  };
+  const recordWeight = async (weight: WeightLog) => {
+    if (!isGuest && !account) throw new Error("กรุณาเข้าสู่ระบบ");
+    const version = dataVersion.current;
+    const saved = isGuest ? weight : await saveWeight(weight);
+    if (version === dataVersion.current) setWeights(previous => [...previous.filter(row => row.measuredOn !== saved.measuredOn), saved]);
+  };
+  const removeWeight = async (date: string) => {
+    if (!isGuest && !account) throw new Error("กรุณาเข้าสู่ระบบ");
+    const version = dataVersion.current;
+    if (!isGuest) await deleteWeight(date);
+    if (version === dataVersion.current) setWeights(previous => previous.filter(row => row.measuredOn !== date));
+  };
+
   const removeLog = async (id: string) => {
     if (isGuest) {
       setLogs((previous) => previous.filter((log) => log.id !== id));
@@ -159,6 +219,8 @@ export default function App() {
   };
 
   const continueAsGuest = async (profile: HealthProfile) => {
+    ++dataVersion.current;
+    setPreferences({}); setWeights([]); setPreferencesReady(true); setWeightsReady(true); setExtrasError("");
     setAccountLoading(true);
     setErrorMessage("");
     try {
@@ -192,6 +254,8 @@ export default function App() {
       }
     }
     if (isGuest) localStorage.removeItem("nutrithai_logs");
+    ++dataVersion.current;
+    setPreferences({}); setWeights([]); setPreferencesReady(false); setWeightsReady(false); setExtrasError("");
     setAccount(null);
     setIsGuest(false);
     setDisplayName("");
@@ -318,11 +382,12 @@ export default function App() {
         </header>
       {errorMessage && <div role="alert" className="mx-auto mt-3 w-full max-w-[1160px] px-4 sm:px-8"><div className="rounded-xl bg-rose-50 p-3 text-sm text-rose-800">{errorMessage}</div></div>}
       <main id="main-content" className="min-h-[calc(100vh-120px)] overflow-y-auto pb-24 md:pb-10">
+        {extrasError && <div role="alert" className="mx-auto max-w-[1160px] px-4 py-3 text-sm text-amber-800">{extrasError} <button type="button" className="underline" onClick={() => void loadExtras(dataVersion.current)}>โหลดข้อมูลใหม่</button></div>}
         {page === "dashboard" && <Dashboard healthProfile={healthProfile!} logs={logs} onRemoveLog={(id) => void removeLog(id).catch((error) => setErrorMessage(error.message))} onNavigate={setPage} username={displayName || "คุณ"} />}
-        {page === "history" && <History logs={logs} onRemoveLog={(id) => void removeLog(id).catch((error) => setErrorMessage(error.message))} onUpdateServings={updateLogServings} onUpdateLog={editLog} customFoods={customFoods} />}
-        {page === "logger" && <FoodLogger customFoods={customFoods} onCreateCustomFood={addCustomFood} foods={foodCatalog} onAddLog={addLog} isAuthenticated={Boolean(account)} />}
+        {page === "history" && <History logs={logs} onCopyMeal={copyMeal} onRemoveLog={(id) => void removeLog(id).catch((error) => setErrorMessage(error.message))} onUpdateServings={updateLogServings} onUpdateLog={editLog} customFoods={customFoods} />}
+        {page === "logger" && <FoodLogger key={account?.id ?? "guest"} preferences={preferences} recommendationsReady={preferencesReady} onPreference={preferencesReady ? changePreference : undefined} onAddBatch={addBatch} logs={logs} healthProfile={healthProfile!} customFoods={customFoods} onCreateCustomFood={addCustomFood} foods={foodCatalog} onAddLog={addLog} isAuthenticated={Boolean(account)} />}
         {page === "ai-scan" && <FoodLogger key="ai-scan" foods={foodCatalog} onAddLog={addLog} isAuthenticated={Boolean(account)} initialTab="scan" scanOnly />}
-        {page === "advice" && <AdviceCard healthProfile={healthProfile!} logs={logs} foods={foodCatalog} />}
+        {page === "advice" && <AdviceCard healthProfile={healthProfile!} logs={logs} foods={foodCatalog} weights={weights} onSaveWeight={weightsReady ? recordWeight : undefined} onDeleteWeight={weightsReady ? removeWeight : undefined} preferences={preferences} recommendationsReady={preferencesReady} />}
       </main>
       </div>
     </div>

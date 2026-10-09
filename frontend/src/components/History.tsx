@@ -1,4 +1,5 @@
 import FoodLogEditor from "./FoodLogEditor";
+import CopyMealForm from "./CopyMealForm";
 import { consumedLabel } from "../lib/portions";
 import { useMemo, useState } from "react";
 import { Food, FoodLog, MealType } from "../types";
@@ -6,6 +7,7 @@ import { getTotals } from "../lib/health";
 import { localDateKey } from "../lib/foodLogs";
 
 interface Props {
+  onCopyMeal?: (ids: string[], date: string, meal: MealType, requestId: string) => Promise<void>;
   onUpdateLog?: (log: FoodLog) => Promise<void>;
   customFoods?: Food[];
   logs: FoodLog[];
@@ -34,7 +36,8 @@ function shiftDate(value: string, days: number) {
   return localDateKey(date);
 }
 
-export default function History({ logs, onRemoveLog, onUpdateServings, onUpdateLog, customFoods = [] }: Props) {
+export default function History({ logs, onRemoveLog, onUpdateServings, onUpdateLog, customFoods = [], onCopyMeal }: Props) {
+  const [copyItems, setCopyItems] = useState<FoodLog[] | null>(null);
   const availableDates = useMemo(
     () => Array.from(new Set(logs.map((log) => localDateKey(new Date(log.loggedAt))))).sort(),
     [logs],
@@ -51,6 +54,7 @@ export default function History({ logs, onRemoveLog, onUpdateServings, onUpdateL
   return (
     <div className="mx-auto w-full max-w-[1160px] px-4 py-7 sm:px-8">
       <h1 className="mb-5 text-2xl font-bold text-[#1a2820]">ประวัติอาหาร</h1>
+      {copyItems && onCopyMeal && <CopyMealForm key={copyItems.map(item => item.id).join(",")} items={copyItems} onCopy={onCopyMeal} onDone={date => { setSelectedDate(date); setCopyItems(null); }} />}
       {editingId && onUpdateLog && logs.find(log => log.id === editingId) && <FoodLogEditor
         key={editingId} log={logs.find(log => log.id === editingId)!} customFoods={customFoods}
         onCancel={() => setEditingId(null)} onSave={async next => {
@@ -130,6 +134,7 @@ export default function History({ logs, onRemoveLog, onUpdateServings, onUpdateL
             <header className="flex items-center justify-between border-b border-[#edf4ee] bg-[#fbfcf9] px-4 py-3">
               <h3 className="flex items-center gap-2 font-semibold text-[#1a2820]"><span aria-hidden="true" className="text-[#2d6e3e]">{meal.icon}</span>{meal.label}</h3>
               <span className="text-sm text-[#596c5c]">{mealCalories} kcal</span>
+              {onCopyMeal && <button type="button" disabled={copyItems !== null} onClick={() => setCopyItems(items)} className="rounded-lg border px-3 py-1 text-xs disabled:opacity-50">คัดลอก{meal.label}</button>}
             </header>
             {items.map((log) => (
               <div key={log.id} className="flex items-center gap-3 border-b border-[#edf4ee] px-4 py-3 last:border-0">

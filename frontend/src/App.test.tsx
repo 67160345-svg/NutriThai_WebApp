@@ -4,6 +4,8 @@ import type { Food, FoodLog, HealthProfile } from "./types";
 import { computeHealthMetrics } from "./lib/health";
 
 const appMocks = vi.hoisted(() => ({
+  readPreferences: vi.fn().mockResolvedValue({}),
+  readWeights: vi.fn().mockResolvedValue([]),
   apiJson: vi.fn(),
   acceptAuthCallback: vi.fn(),
   signOut: vi.fn(),
@@ -26,6 +28,11 @@ vi.mock("./lib/api", () => ({
   apiJson: appMocks.apiJson,
   acceptAuthCallback: appMocks.acceptAuthCallback,
   signOut: appMocks.signOut,
+}));
+
+vi.mock("./lib/personalization", () => ({
+  readPreferences: appMocks.readPreferences, readWeights: appMocks.readWeights,
+  savePreference: vi.fn(), saveWeight: vi.fn(), deleteWeight: vi.fn(),
 }));
 
 vi.mock("./lib/foodLogs", () => ({

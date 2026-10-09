@@ -58,3 +58,8 @@ export interface NutritionTotals {
   carbs: number;
   fat: number;
 }
+
+export type FoodPreference = "like" | "not_interested" | "avoid";
+export type FoodPreferences = Record<string, FoodPreference>;
+export interface WeightLog { measuredOn: string; weightKg: number; }
+export interface MealItem { food: Food; servings: number; }
