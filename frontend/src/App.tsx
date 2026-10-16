@@ -14,6 +14,7 @@ import Dashboard from "./components/Dashboard";
 import FoodLogger from "./components/FoodLogger";
 import History from "./components/History";
 import Navbar from "./components/Navbar";
+import Icon from "./components/Icon";
 import OnboardingModal from "./components/OnboardingModal";
 import PasswordRecovery from "./components/PasswordRecovery";
 
@@ -42,6 +43,7 @@ export default function App() {
   const [customFoods, setCustomFoods] = useState<Food[]>([]);
   const [page, setPage] = useState<Page>("dashboard");
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [editingProfile, setEditingProfile] = useState(false);
   const [showAuthPage, setShowAuthPage] = useState(false);
   const [account, setAccount] = useState<Account | null>(null);
   const [isGuest, setIsGuest] = useState(false);
@@ -66,6 +68,7 @@ export default function App() {
   };
 
   const loadAuthenticatedUser = async (user: ApiUser) => {
+    setEditingProfile(false);
     const version = ++dataVersion.current;
     setPreferences({}); setWeights([]); setPreferencesReady(false); setWeightsReady(false); setExtrasError("");
     setAccount(user);
@@ -268,7 +271,7 @@ export default function App() {
   };
 
   if (!authReady || accountLoading) {
-    return <div className="min-h-screen flex items-center justify-center text-[#24463a]">กำลังโหลดข้อมูลบัญชี...</div>;
+    return <div className="app-loading" role="status"><Icon name="leaf" /><strong>NutriThai</strong><p>กำลังโหลดข้อมูลบัญชี...</p></div>;
   }
 
   if (isPasswordRecovery) {
@@ -293,7 +296,8 @@ export default function App() {
   if (!healthProfile && !isGuest) {
     if (account) {
       return (
-        <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-4 text-center">
+        <div className="app-account-error min-h-screen flex flex-col items-center justify-center gap-4 p-4 text-center">
+          <Icon name="user" />
           <div role="alert" className="max-w-lg rounded-xl bg-rose-50 p-4 text-sm text-rose-800">
             {errorMessage || "ไม่สามารถโหลดข้อมูลบัญชีได้"}
           </div>
@@ -313,9 +317,12 @@ export default function App() {
 
   if (showOnboarding && healthProfile) {
     return (
-      <div className="min-h-full bg-[#f4f5ee] p-4 sm:p-8 overflow-y-auto">
+      <div>
         {errorMessage && <div role="alert" className="mx-auto mb-4 max-w-3xl rounded-xl bg-rose-50 p-3 text-sm text-rose-800">{errorMessage}</div>}
         <OnboardingModal
+          editing={editingProfile}
+          isGuest={isGuest}
+          onCancel={editingProfile ? () => { setShowOnboarding(false); setEditingProfile(false); setErrorMessage(""); } : undefined}
           initialProfile={healthProfile}
           initialName={displayName}
           onComplete={async (profile, name) => {
@@ -330,6 +337,7 @@ export default function App() {
             }
             setHealthProfile(savedProfile);
             setShowOnboarding(false);
+            setEditingProfile(false);
             setErrorMessage("");
           }}
         />
@@ -338,50 +346,50 @@ export default function App() {
   }
 
   return (
-    <div className="app-shell min-h-screen bg-[#f8f5ef] text-[#1a2820]">
+    <div className="app-shell min-h-screen">
       <a href="#main-content" className="sr-only fixed left-3 top-3 z-[80] rounded-lg bg-white px-4 py-2 text-sm font-semibold text-[#2d6e3e] focus:not-sr-only">ข้ามไปเนื้อหา</a>
       <Navbar
         page={page}
         onNavigate={setPage}
         username={displayName || account?.username || "ผู้เยี่ยมชม"}
         isGuest={isGuest}
-        onEditProfile={() => setShowOnboarding(true)}
+        onEditProfile={() => { setEditingProfile(true); setShowOnboarding(true); }}
         onSignOut={() => void signOut()}
       />
-      <div className="md:ml-[232px]">
+      <div className="app-content">
         {isGuest ? (
-          <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 bg-[#eae6dd] px-3 py-2 text-center text-xs text-[#596c5c] sm:text-sm">
+          <div className="app-status flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
             <span aria-hidden="true">♧</span>
             <span>โหมดผู้เยี่ยมชม · ข้อมูลจะหายเมื่อรีเฟรช</span>
             <button type="button" onClick={() => setShowAuthPage(true)} className="font-semibold text-[#2d6e3e] underline underline-offset-2">สร้างบัญชี</button>
           </div>
         ) : (
-          <div className="flex justify-center bg-[#eae6dd] px-3 py-2 text-center text-xs text-[#596c5c]">
+          <div className="app-status">
             NutriThai · บันทึกสุขภาพส่วนตัวของคุณ
           </div>
         )}
-        <header className="sticky top-0 z-40 border-b border-[#e5e2da] bg-[#f8f5ef]/95 backdrop-blur-xl">
-          <div className="flex items-center justify-between gap-3 px-4 py-3.5 sm:px-8">
-            <div>
-              <div className="text-sm font-semibold text-[#1a2820] sm:text-base">บันทึกสุขภาพประจำวัน</div>
-              <div className="text-xs text-[#596c5c]">โภชนาการที่เข้าใจง่าย ในทุกมื้อของคุณ</div>
-            </div>
+        <header className="app-header">
+          <div className="app-header-inner">
+            <div className="header-tagline">NutriThai<span>โภชนาการที่เข้าใจง่าย ในทุกมื้อของคุณ</span></div>
+          <div className="header-actions">
+            <button type="button" className="header-search" aria-label="ค้นหาอาหาร" onClick={() => setPage("logger")}><Icon name="search" /><span>ค้นหาอาหาร...</span></button>
           <div className="relative">
-            <button type="button" aria-label="เมนูผู้ใช้" aria-expanded={showUserMenu} onClick={() => setShowUserMenu((open) => !open)} className="flex min-h-11 items-center gap-2 rounded-xl border border-[#e5e2da] bg-white px-3 text-sm shadow-sm hover:border-[#2d6e3e]">
-              <span aria-hidden="true">♙</span><span className="max-w-28 truncate">{displayName || account?.username || "Guest"}</span>
+            <button type="button" aria-label="เมนูผู้ใช้" aria-expanded={showUserMenu} onClick={() => setShowUserMenu((open) => !open)} className="user-menu-trigger">
+              <span aria-hidden="true" className="user-avatar">{(displayName || account?.username || "G").slice(0, 1)}</span><span className="max-w-28 truncate">{displayName || account?.username || "Guest"}</span>
             </button>
             {showUserMenu && (
-              <div className="absolute right-0 top-14 z-50 w-60 rounded-xl border border-[#e5e2da] bg-white p-1.5 shadow-xl">
-                {account && <div className="px-3 py-2 text-xs text-[#596c5c] truncate">{displayName || account.username}</div>}
-                <button type="button" onClick={() => { setShowOnboarding(true); setShowUserMenu(false); }} className="w-full text-left px-3 py-2.5 rounded-lg text-sm text-[#1a2820] hover:bg-[#edf4ee]">แก้ไขโปรไฟล์</button>
-                <button type="button" onClick={() => void signOut()} className="w-full text-left px-3 py-2.5 rounded-lg text-sm text-[#9d302b] hover:bg-[#fff1ef]">ออกจากระบบ</button>
+              <div className="profile-user-dropdown">
+                <div className="profile-dropdown-identity"><span className="user-avatar">{(displayName || account?.username || "G").slice(0, 1)}</span><div><strong>{displayName || account?.username || "ผู้เยี่ยมชม"}</strong><small>{isGuest ? "โหมดผู้เยี่ยมชม" : "บัญชี NutriThai"}</small></div></div>
+                <button type="button" onClick={() => { setEditingProfile(true); setShowOnboarding(true); setShowUserMenu(false); }}><Icon name="user" />แก้ไขโปรไฟล์<Icon name="arrow" /></button>
+                <button type="button" className="profile-dropdown-signout" onClick={() => void signOut()}><Icon name="logout" />ออกจากระบบ</button>
               </div>
             )}
           </div>
           </div>
+          </div>
         </header>
       {errorMessage && <div role="alert" className="mx-auto mt-3 w-full max-w-[1160px] px-4 sm:px-8"><div className="rounded-xl bg-rose-50 p-3 text-sm text-rose-800">{errorMessage}</div></div>}
-      <main id="main-content" className="min-h-[calc(100vh-120px)] overflow-y-auto pb-24 md:pb-10">
+      <main id="main-content" className="app-main">
         {extrasError && <div role="alert" className="mx-auto max-w-[1160px] px-4 py-3 text-sm text-amber-800">{extrasError} <button type="button" className="underline" onClick={() => void loadExtras(dataVersion.current)}>โหลดข้อมูลใหม่</button></div>}
         {page === "dashboard" && <Dashboard healthProfile={healthProfile!} logs={logs} onRemoveLog={(id) => void removeLog(id).catch((error) => setErrorMessage(error.message))} onNavigate={setPage} username={displayName || "คุณ"} />}
         {page === "history" && <History logs={logs} onCopyMeal={copyMeal} onRemoveLog={(id) => void removeLog(id).catch((error) => setErrorMessage(error.message))} onUpdateServings={updateLogServings} onUpdateLog={editLog} customFoods={customFoods} />}

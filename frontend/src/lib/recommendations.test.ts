@@ -10,6 +10,43 @@ const options = { foods: [favorite, matching], customFoods: [] as Food[], logs: 
 const history = Array.from({ length: 7 }, (_, i) => log(favorite, `2026-10-0${i + 1}`));
 
 describe("personal food ranking", () => {
+  it("lets the selected macro focus change ranking at the same calorie budget", () => {
+    const protein = { ...favorite, id: 10, name: "Protein dish", calories: 700, protein: 45, carbs: 0, fat: 0 };
+    const carbs = { ...protein, id: 11, name: "Carb dish", protein: 0, carbs: 88 };
+    const input = { ...options, foods: [protein, carbs], mode: "goal" as const };
+    expect(recommendFoods({ ...input, focus: "protein" }).recommendations[0].food.id).toBe(10);
+    expect(recommendFoods({ ...input, focus: "carbs" }).recommendations[0].food.id).toBe(11);
+  });
+  it("fits goal quantities while preserving familiar quantities and excludes portions still over budget", () => {
+    const small = { ...favorite, calories: 400 };
+    expect(recommendFoods({ ...options, foods: [small], mode: "goal" }).recommendations[0].servings).toBe(1.75);
+    expect(recommendFoods({ ...options, foods: [small], mode: "familiar" }).recommendations[0].servings).toBe(1);
+    expect(recommendFoods({ ...options, foods: [{ ...small, calories: 1800 }], mode: "goal" }).recommendations).toEqual([]);
+  });
+  it("uses a larger bundle pool and honors exclusions and exhausted budgets in meal mode", () => {
+    const foods = Array.from({ length: 9 }, (_, i) => ({ ...favorite, id: i + 1, name: `Dish ${i + 1}` }));
+    const result = recommendFoods({ ...options, foods, mode: "meal", preferences: { "catalog:2": "avoid" } });
+    expect(result.recommendations).toHaveLength(6);
+    expect(result.mealCandidates).toHaveLength(8);
+    expect(result.mealCandidates.some(item => item.food.id === 2)).toBe(false);
+    expect(recommendFoods({ ...options, mode: "meal", logs: [log(matching, "2026-10-09", "lunch")] }).mealCandidates).toEqual([]);
+  });
+  it("pairs complementary foods using combined macros without exceeding energy or portion bounds", () => {
+    const protein = { ...favorite, id: 10, name: "Protein", calories: 200, protein: 50, carbs: 0, fat: 0 };
+    const carbs = { ...protein, id: 11, name: "Carbs", protein: 0, carbs: 50 };
+    const fat = { ...protein, id: 12, name: "Fat", protein: 0, fat: 22 };
+    const items = [protein, fat, carbs].map(food => ({ food, servings: 1, score: 0.5, reasons: [], knownBasis: true }));
+    const plan = buildMealPlan(items, 400, { remaining: { calories: 400, protein: 50, carbs: 50, fat: 1 }, focus: "balanced" });
+    expect(plan.map(item => item.food.id).sort()).toEqual([10, 11]);
+    expect(plan.reduce((sum, item) => sum + item.food.calories * item.servings, 0)).toBeLessThanOrEqual(400);
+    expect(plan.every(item => item.servings >= 0.5 && item.servings <= 2)).toBe(true);
+  });
+  it("does not pair two preparations of the same food family", () => {
+    const variants = ["Chicken, roasted", "Chicken, fried"].map((name, index) => ({
+      food: { ...favorite, id: index + 1, name }, servings: 1, score: 1, reasons: [], knownBasis: true,
+    }));
+    expect(buildMealPlan(variants, 700)).toEqual([]);
+  });
   it("prioritizes an explicit like and excludes hidden foods from singles and bundles", () => {
     const liked = recommendFoods({ ...options, mode: "familiar", preferences: { "catalog:2": "like" } });
     expect(liked.recommendations[0].food.id).toBe(2);

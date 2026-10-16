@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { Food, FoodLog, MealType, FoodUnit, HealthProfile, FoodPreferences, FoodPreference, MealItem } from "../types";
 import FoodRecommendations from "./FoodRecommendations";
+import Icon from "./Icon";
+import PageHeading from "./PageHeading";
 import FoodPreferenceButtons from "./FoodPreferenceButtons";
 import MealComposer from "./MealComposer";
 import { foodKey } from "../lib/recommendations";
@@ -212,20 +214,19 @@ export default function FoodLogger({ onAddLog, isAuthenticated, foods, initialTa
   };
 
   return (
-    <div className="mx-auto w-full max-w-[720px] px-4 py-7 sm:px-8">
+    <div className={scanOnly ? "soft-page ai-page" : "food-logger"}>
       {!scanOnly && draft.length > 0 && onAddBatch && <MealComposer items={draft} onChange={setDraft} onSave={onAddBatch} initialDate={logDate} initialMeal={mealType} onLockChange={setBatchLocked} onDone={() => { setDraft([]); setBatchLocked(false); setAdded(true); }} />}
       <fieldset disabled={batchLocked} className="min-w-0 disabled:opacity-50">
       {saveError && !selectedFood && <p role="alert" className="text-sm text-rose-700">{saveError}</p>}
       {/* Header */}
       {scanOnly ? (
-        <div className="mb-5">
-          <h2 className="text-xl font-bold text-[#1a2820]">สแกนอาหารด้วย AI</h2>
-          <p className="mt-2 text-sm text-[#596c5c]">01 ยินยอม → 02 เลือกรูป → 03 ตรวจสอบและบันทึก</p>
-        </div>
+        <><PageHeading eyebrow="A LITTLE HELP FROM AI" title="สแกนอาหารด้วย AI" description="เริ่มจากภาพมื้ออร่อย แล้วตรวจข้อมูลก่อนบันทึก" />
+          <section className="ai-intro"><div><span className="ai-camera-icon"><Icon name="camera" /></span><h2>ถ่ายหนึ่งภาพ<br />รู้จักมื้อนี้มากขึ้น</h2><p>ช่วยประมาณชื่ออาหารและสารอาหาร<br />คุณเป็นคนตรวจ ปรับ และเลือกบันทึก</p></div><ol>{[{ title: "ยินยอม", text: "เลือกว่าจะส่งรูปไปวิเคราะห์หรือไม่" }, { title: "เลือกรูป", text: "JPEG, PNG หรือ WebP ไม่เกิน 5 MB" }, { title: "ตรวจและบันทึก", text: "ปรับชื่อ ปริมาณ และโภชนาการได้" }].map((item, index) => <li key={item.title}><span>0{index + 1}</span><div><strong>{item.title}</strong><p>{item.text}</p></div></li>)}</ol></section>
+        </>
       ) : (
-        <div className="mb-5 flex items-center justify-between gap-3">
-          <h2 className="text-xl font-bold text-[#1a2820]">เพิ่มอาหาร</h2>
-          <label htmlFor="log-date" className="sr-only">วันที่รับประทาน</label>
+        <div className="logger-heading">
+          <div><p className="eyebrow">A LITTLE BETTER, EVERY MEAL</p><h1>เพิ่มอาหาร <Icon name="leaf" /></h1><p>เลือกมื้อที่ใช่ บันทึกง่าย ในแบบของคุณ</p></div>
+          <label htmlFor="log-date" className="logger-date"><Icon name="clock" /><span>วันที่รับประทาน</span>
           <input
             id="log-date"
             type="date"
@@ -234,16 +235,18 @@ export default function FoodLogger({ onAddLog, isAuthenticated, foods, initialTa
             onChange={(e) => setLogDate(e.target.value)}
             className="max-w-44 rounded-xl border border-[#e5e2da] bg-white px-3 py-2.5 text-sm text-[#1a2820]"
           />
+          </label>
         </div>
       )}
 
       {/* Tabs */}
-      {!scanOnly && <div className="mb-5 flex gap-1 rounded-xl bg-[#eeece5] p-1">
+      {!scanOnly && <div className="logger-tabs" aria-label="วิธีเพิ่มอาหาร">
         {(["search", "scan", "custom"] as const).map((t) => (
           <button
             key={t}
             type="button"
             disabled={isScanning}
+            aria-pressed={tab === t}
             onClick={() => {
               setTab(t);
               setSelectedFood(null);
@@ -253,17 +256,15 @@ export default function FoodLogger({ onAddLog, isAuthenticated, foods, initialTa
               setScanError("");
               setScanPreview("");
             }}
-            className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${
-              tab === t ? "bg-white text-[#2d6e3e] shadow-sm" : "text-[#718078] hover:text-[#2d6e3e]"
-            }`}
+            className={tab === t ? "is-active" : ""}
           >
-            {t === "search" ? "🔍 ค้นหาอาหาร" : t === "scan" ? "📷 สแกนรูป" : "＋ อาหารของฉัน"}
+            <Icon name={t === "search" ? "search" : t === "scan" ? "camera" : "bowl"} />{t === "search" ? "ค้นหาอาหาร" : t === "scan" ? "สแกนรูป" : "อาหารของฉัน"}
           </button>
         ))}
       </div>}
 
       {tab === "search" && (
-        <div className="flex gap-2 overflow-x-auto pb-1">
+        <div className="logger-categories" aria-label="หมวดอาหาร">
           {([
             ["all", "ทั้งหมด"],
             ["food", "อาหาร"],
@@ -274,7 +275,8 @@ export default function FoodLogger({ onAddLog, isAuthenticated, foods, initialTa
               key={value}
               type="button"
               onClick={() => setCategory(value)}
-              className={`shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition-colors ${category === value ? "border-[#2d6e3e] bg-[#2d6e3e] text-white" : "border-[#e5e2da] bg-white text-[#596c5c] hover:border-[#b7cdb9]"}`}
+              aria-pressed={category === value}
+              className={category === value ? "is-active" : ""}
             >
               {label}
             </button>
@@ -285,8 +287,9 @@ export default function FoodLogger({ onAddLog, isAuthenticated, foods, initialTa
 
       {/* Search Tab */}
       {tab === "search" && (
-        <div className="space-y-3">
-          <div className="relative">
+        <div className="logger-search-content space-y-3">
+          <div className="logger-search-box">
+            <Icon name="search" />
             <label htmlFor="food-search" className="sr-only">ค้นหาอาหารภาษาไทยหรืออังกฤษ</label>
             <input
               id="food-search"
@@ -302,7 +305,7 @@ export default function FoodLogger({ onAddLog, isAuthenticated, foods, initialTa
                 type="button"
                 aria-label="ล้างคำค้นหา"
                 onClick={() => { setQuery(""); setSelectedFood(null); }}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-[#718078] hover:text-[#2d6e3e]"
+                className="logger-clear-search"
               >
                 ✕
               </button>
@@ -313,7 +316,7 @@ export default function FoodLogger({ onAddLog, isAuthenticated, foods, initialTa
           {searchError && <div role="alert" className="rounded-xl bg-rose-50 p-3 text-sm text-rose-800">ค้นหารายการอาหารไม่สำเร็จ: {searchError}</div>}
 
           {results.length > 0 && !selectedFood && !isSearching && (
-            <div className="space-y-2">
+            <div className="logger-results space-y-2" aria-label="ผลการค้นหาอาหาร">
               {results.map((food) => (
                 <button
                   key={food.id}
@@ -321,10 +324,10 @@ export default function FoodLogger({ onAddLog, isAuthenticated, foods, initialTa
                   className="flex w-full items-center justify-between gap-3 rounded-[18px] border border-[#e5e2da] bg-white px-4 py-3.5 text-left shadow-sm transition-colors hover:border-[#b7cdb9]"
                 >
                   <div className="flex min-w-0 flex-1 items-center gap-3">
-                    <span aria-hidden="true" className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#f3f0ea] text-xl">{food.category === "drink" ? "♧" : food.category === "dessert" ? "✿" : "♨"}</span>
+                    <span aria-hidden="true" className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#f3f0ea] text-xl"><Icon name={food.category === "drink" ? "drop" : food.category === "dessert" ? "grain" : "bowl"} /></span>
                     <div className="min-w-0">
-                      <div className="truncate text-sm font-semibold text-[#1a2820]">{food.nameTh}</div>
-                      <div className="truncate text-xs text-[#718078]">{food.name}</div>
+                      <div className="truncate text-sm font-semibold text-[#1a2820]">{food.nameTh || food.name}</div>
+                      {food.nameTh && food.nameTh !== food.name && <div className="truncate text-xs text-[#718078]">{food.name}</div>}
                     </div>
                   </div>
                   <div className="shrink-0 text-right">
@@ -342,15 +345,18 @@ export default function FoodLogger({ onAddLog, isAuthenticated, foods, initialTa
           )}
 
           {!query.trim() && !selectedFood && (
-            <>
+            <div className="logger-discovery">
+            <div className="logger-recommendations">
             {!recommendationsReady && <p className="text-sm text-amber-800">ยังโหลดความชอบไม่ได้ จึงพักคำแนะนำไว้ก่อน</p>}
             {healthProfile && recommendationsReady && <FoodRecommendations foods={foods} customFoods={customFoods} logs={logs} profile={healthProfile} date={logDate} meal={mealType} category={category} onMealChange={setMealType} onSelect={handleSelect} preferences={preferences} onPreference={onPreference} onPlan={onAddBatch ? items => { if (draft.length + items.length > 30) { setSaveError("เลือกได้ไม่เกิน 30 รายการต่อชุด"); return; } setDraft([...draft, ...items]); } : undefined} />}
             {onPreference && Object.keys(preferences).length > 0 && <details className="rounded-xl border bg-white p-3">
               <summary className="cursor-pointer text-sm">จัดการความชอบและอาหารที่ซ่อน</summary>
               {[...foods, ...customFoods].filter(food => preferences[foodKey(food) ?? ""]).map(food => <div key={foodKey(food)} className="mt-3"><p className="mb-1 text-sm">{food.nameTh}</p><FoodPreferenceButtons food={food} value={preferences[foodKey(food)!]} onChange={onPreference} /></div>)}
             </details>}
-            <h3 className="text-sm font-semibold text-[#596c5c]">รายการอาหาร</h3>
-            <div className="space-y-2">
+            </div>
+            <section className="logger-catalog" aria-label="รายการอาหาร">
+            <div className="logger-section-heading"><div><p className="eyebrow">EXPLORE YOUR NEXT MEAL</p><h2>รายการอาหาร</h2></div><span><Icon name="bowl" /> เลือกเพื่อบันทึก</span></div>
+            <div className="logger-results space-y-2">
               {foods.filter((food) => category === "all" || food.category === category).slice(0, 15).map((food) => (
                 <button
                   key={food.id}
@@ -358,10 +364,10 @@ export default function FoodLogger({ onAddLog, isAuthenticated, foods, initialTa
                   className="flex w-full items-center justify-between gap-3 rounded-[18px] border border-[#e5e2da] bg-white px-4 py-3.5 text-left shadow-sm transition-colors hover:border-[#b7cdb9]"
                 >
                   <div className="flex min-w-0 flex-1 items-center gap-3">
-                    <span aria-hidden="true" className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#f3f0ea] text-xl">{food.category === "drink" ? "♧" : food.category === "dessert" ? "✿" : "♨"}</span>
+                    <span aria-hidden="true" className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#f3f0ea] text-xl"><Icon name={food.category === "drink" ? "drop" : food.category === "dessert" ? "grain" : "bowl"} /></span>
                     <div className="min-w-0">
-                      <div className="truncate text-sm font-semibold text-[#1a2820]">{food.nameTh}</div>
-                      <div className="truncate text-xs text-[#718078]">{food.name}</div>
+                      <div className="truncate text-sm font-semibold text-[#1a2820]">{food.nameTh || food.name}</div>
+                      {food.nameTh && food.nameTh !== food.name && <div className="truncate text-xs text-[#718078]">{food.name}</div>}
                     </div>
                   </div>
                   <div className="shrink-0 text-right">
@@ -372,12 +378,13 @@ export default function FoodLogger({ onAddLog, isAuthenticated, foods, initialTa
                 </button>
               ))}
             </div>
-            </>
+            </section>
+            </div>
           )}
         </div>
       )}
 
-      {tab === "custom" && <div className="space-y-4">
+      {tab === "custom" && <div className="logger-custom space-y-4">
         <p className="text-sm text-[#596c5c]">{isAuthenticated ? "อาหารส่วนตัวจะเก็บในบัญชีของคุณและเลือกใช้ซ้ำได้" : "โหมดผู้เยี่ยมชม: อาหารส่วนตัวจะหายเมื่อรีเฟรช"}</p>
         <CustomFoodForm onSave={async food => {
           const saved = onCreateCustomFood ? await onCreateCustomFood(food) : food;
@@ -393,7 +400,7 @@ export default function FoodLogger({ onAddLog, isAuthenticated, foods, initialTa
 
       {/* Scan Tab */}
       {tab === "scan" && (
-        <div className="space-y-3">
+        <div className="logger-scan space-y-3">
           {scanOnly && (
             <div className="rounded-[22px] border border-[#e5e2da] bg-white p-6">
               <div aria-hidden="true" className="mb-4 text-2xl text-[#2d6e3e]">♧</div>
@@ -444,7 +451,7 @@ export default function FoodLogger({ onAddLog, isAuthenticated, foods, initialTa
               </div>
             ) : (
               <div className="space-y-3">
-                <div className="text-5xl">📷</div>
+                <div className="scan-upload-icon"><Icon name="camera" /></div>
                 <div className="text-sm text-[#596c5c]">วิเคราะห์รูปอาหารด้วย Gemini Vision</div>
                 <div className="text-xs text-[#718078]">ตรวจสอบค่าประมาณก่อนเพิ่มลงบันทึก</div>
               </div>
@@ -480,16 +487,16 @@ export default function FoodLogger({ onAddLog, isAuthenticated, foods, initialTa
                 onClick={() => setIsEditingScan((editing) => !editing)}
                 className="text-xs text-emerald-400 hover:text-emerald-300 font-semibold"
               >
-                {isEditingScan ? "Cancel correction" : "Correct AI result"}
+                {isEditingScan ? "ยกเลิกการแก้ไข" : "แก้ไขผลวิเคราะห์"}
               </button>
               {isEditingScan && (
                 <div className="mt-2 grid grid-cols-2 gap-2 text-left">
                   {([
-                    ["name", "Food name", "text"],
-                    ["calories", "Calories", "number"],
-                    ["protein", "Protein (g)", "number"],
-                    ["carbs", "Carbs (g)", "number"],
-                    ["fat", "Fats (g)", "number"],
+                    ["name", "ชื่ออาหาร", "text"],
+                    ["calories", "พลังงาน (kcal)", "number"],
+                    ["protein", "โปรตีน (g)", "number"],
+                    ["carbs", "คาร์บ (g)", "number"],
+                    ["fat", "ไขมัน (g)", "number"],
                   ] as const).map(([field, label, type]) => (
                     <label key={field} className={field === "name" ? "col-span-2 text-[11px] text-slate-500" : "text-[11px] text-slate-500"}>
                       {label}
@@ -511,7 +518,7 @@ export default function FoodLogger({ onAddLog, isAuthenticated, foods, initialTa
                     }}
                     className="col-span-2 rounded-lg bg-emerald-500 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-400"
                   >
-                    Save correction
+                    ใช้ข้อมูลที่แก้ไข
                   </button>
                 </div>
               )}
@@ -570,13 +577,13 @@ export default function FoodLogger({ onAddLog, isAuthenticated, foods, initialTa
 
       {/* Add to Log Panel */}
       {selectedFood && (
-        <div className="space-y-4 rounded-[22px] border border-[#e5e2da] bg-white p-5 shadow-sm">
+        <div className="logger-selection space-y-4 rounded-[22px] border border-[#e5e2da] bg-white p-5 shadow-sm">
           <div className="text-xs font-semibold uppercase tracking-wider text-[#596c5c]">บันทึกอาหาร</div>
           <FoodPreferenceButtons food={selectedFood} value={preferences[foodKey(selectedFood) ?? ""]} onChange={onPreference} />
           {preferences[foodKey(selectedFood) ?? ""] === "avoid" && <p className="text-sm text-amber-800">คุณตั้งว่าไม่กินอาหารนี้ ระบบจะไม่แนะนำ แต่ยังเลือกบันทึกด้วยตัวเองได้</p>}
           {saveError && <div role="alert" className="rounded-lg bg-rose-500/10 p-2 text-xs text-rose-300">{saveError}</div>}
 
-          <div className="flex items-center gap-3 rounded-2xl bg-[#f8f5ef] p-4">
+          <div className="logger-selected-summary flex items-center gap-3 rounded-2xl bg-[#f8f5ef] p-4">
             <span aria-hidden="true" className="grid h-12 w-12 shrink-0 place-items-center rounded-[14px] bg-white text-xl">{selectedFood.category === "drink" ? "♧" : selectedFood.category === "dessert" ? "✿" : "♨"}</span>
             <div className="min-w-0 flex-1">
               <div className="truncate text-base font-bold text-[#1a2820]">{selectedFood.nameTh}</div>
@@ -632,7 +639,7 @@ export default function FoodLogger({ onAddLog, isAuthenticated, foods, initialTa
           {!scanOnly && onAddBatch && <button type="button" disabled={!validServings(servings) || draft.length >= 30} onClick={() => { setDraft([...draft, { food: selectedFood, servings }]); setSelectedFood(null); setQuery(""); }} className="w-full rounded-xl border border-[#2d6e3e] p-3 font-semibold text-[#2d6e3e] disabled:opacity-50">เพิ่มในชุดมื้อ ({draft.length}/30)</button>}
           {scanOnly && <label className="block text-sm">วันที่รับประทาน<input type="date" required max={localDateKey(new Date())} value={logDate} onChange={e => setLogDate(e.target.value)} className="ml-2 rounded-lg border p-2" /></label>}
 
-          <div className="sticky bottom-[76px] z-20 -mx-2 flex items-center justify-between gap-3 rounded-[18px] border border-[#e5e2da] bg-white/95 p-3 shadow-lg backdrop-blur md:bottom-4">
+          <div className="logger-save-bar sticky bottom-[76px] z-20 -mx-2 flex items-center justify-between gap-3 rounded-[18px] border border-[#e5e2da] bg-white/95 p-3 shadow-lg backdrop-blur md:bottom-4">
             <div>
               <div className="text-xs text-[#718078]">รวม</div>
               <div className="text-sm font-bold text-[#1a2820]">{Number.isFinite(Number(servings)) ? Math.round(selectedFood.calories * Number(servings)) : 0} kcal</div>
@@ -651,7 +658,7 @@ export default function FoodLogger({ onAddLog, isAuthenticated, foods, initialTa
 
       </fieldset>
       {added && (
-        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-emerald-500 text-white px-5 py-2.5 rounded-full text-sm font-semibold shadow-lg shadow-emerald-500/30 animate-bounce">
+        <div role="status" className="logger-toast fixed bottom-24 left-1/2 -translate-x-1/2 bg-emerald-500 text-white px-5 py-2.5 rounded-full text-sm font-semibold shadow-lg shadow-emerald-500/30">
           ✓ เพิ่มเรียบร้อย!
         </div>
       )}

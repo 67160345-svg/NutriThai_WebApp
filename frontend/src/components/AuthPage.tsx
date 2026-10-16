@@ -4,6 +4,7 @@ import type { HealthProfile } from "../types";
 import type { ApiUser } from "../lib/api";
 import { login, requestPasswordReset, signUp } from "../lib/api";
 import { computeHealthMetrics } from "../lib/health";
+import AuthLayout from "./AuthLayout";
 
 interface Props {
   onGuest: (profile: HealthProfile) => void;
@@ -70,17 +71,18 @@ export default function AuthPage({ onGuest, onAuthenticated }: Props) {
   };
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-[#f8f5ef] px-4 py-8">
-      <section className="w-full max-w-[448px] border-y border-[#e5e2da] bg-[#f8f5ef] px-6 py-8 sm:px-10 sm:py-9">
-        <header className="mb-7 text-center">
+    <AuthLayout>
+      <section className="auth-form-card">
+        <header className="auth-form-heading">
           <span className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-2xl bg-[#2d6e3e] text-white">
             <svg aria-hidden="true" className="h-7 w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               <path d="M20 4c-7 0-13 3-13 10a6 6 0 0 0 6 6C20 20 20 12 20 4Z" />
               <path d="M4 21c2-5 6-8 11-11" />
             </svg>
           </span>
-          <h1 className="text-2xl font-extrabold text-[#1a2820]">NutriThai</h1>
-          <p className="mt-1 text-sm text-[#596c5c]">บันทึกอาหาร ดูแลสุขภาพ ง่ายๆ</p>
+          <p className="eyebrow">WELCOME TO NUTRITHAI</p>
+          <h1>{isResetMode ? "กลับมาดูแลตัวเองต่อ" : isLogin ? "ยินดีต้อนรับกลับ" : "เริ่มต้นมื้อดี ๆ ไปด้วยกัน"}</h1>
+          <p>บันทึกอาหาร ดูแลสุขภาพ ง่ายๆ</p>
         </header>
 
         {!isResetMode && (
@@ -218,6 +220,6 @@ export default function AuthPage({ onGuest, onAuthenticated }: Props) {
           </>
         )}
       </section>
-    </main>
+    </AuthLayout>
   );
 }

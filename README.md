@@ -2,6 +2,16 @@
 
 เว็บแอปติดตามโภชนาการสำหรับอาหารไทย ช่วยคำนวณเป้าหมายพลังงาน บันทึกอาหารรายวัน วิเคราะห์รูปอาหารด้วย Gemini และดูแนวโน้มสุขภาพย้อนหลัง
 
+## หน้าตาเว็บ — 16 ตุลาคม 2026
+
+นำ Soft Green ไปใช้ครบทุกหน้าหลักและหน้าบัญชีแล้ว รวมประวัติ ข้อมูลเชิงลึก สแกน AI เข้าสู่ระบบ สมัครสมาชิก และกู้รหัสผ่าน ตรวจ frontend 81 tests, TypeScript และ build ผ่าน ดู [ภาพและรายละเอียด](docs/design/soft-green-all-pages-2026-10-16.md)
+
+ปรับเป็น Soft Green Dashboard พร้อม sidebar บน desktop และเมนูด้านล่างบนมือถือ ใช้ข้อมูลจริงในวงแหวนพลังงาน สารอาหาร มื้ออาหาร และกราฟ มีไฟล์ Figma สำหรับ desktop/mobile ตรวจ frontend 79 tests, TypeScript และ production build ผ่าน ดู [รายละเอียดและภาพ](docs/design/soft-green-implementation-2026-10-16.md)
+
+## ข้อมูลอาหาร — 16 ตุลาคม 2026
+
+อัปเดตบน Supabase `calorie-app` แล้ว: หน่วยอ้างอิงและน้ำหนัก 4,580 รายการ พร้อมชื่อไทย 1,140 รายการ โดยเทียบกับขนาดที่ระบุชัดใน CSV ต้นฉบับของโปรเจกต์ คงค่าโภชนาการ ID และประวัติเดิมทั้งหมด ชื่ออีก 3,440 รายการยังคงภาษาอังกฤษระหว่างรอตรวจคำแปล ไม่ได้ดาวน์โหลดไฟล์ USDA มาเทียบรายแถวซ้ำในรอบนี้ ดู [แหล่งข้อมูล วิธีตรวจ และผลบนฐานจริง](docs/catalog-metadata-2026-10-16.md)
+
 ## อัปเดต — **9 ตุลาคม 2026**
 
 พัฒนาฟีเจอร์ข้อ 2–5 ตามที่ผู้ใช้อนุมัติ พร้อมเชื่อม frontend, backend และเตรียม migration:
@@ -15,9 +25,9 @@
 
 **ผลตรวจในเครื่องล่าสุด:** frontend 73 tests, backend 62 tests และ migration tests สำหรับ fresh install/upgrade ผ่าน; TypeScript และ production build ผ่าน รายละเอียดการตรวจ Supabase จริงและรายการที่ยังรออยู่ใน [รายงานผลตรวจ](docs/verification-2026-10-09.md)
 
-**ก่อนใช้ความชอบและน้ำหนักกับบัญชีจริง:** รัน [20261009_preferences_weights.sql](supabase/migrations/20261009_preferences_weights.sql) หลัง migration เดิม ไฟล์นี้ยังไม่ได้รันบน Supabase ของผู้ใช้ หากตารางใหม่ยังไม่มี แอปจะแจ้งว่าโหลดความชอบ/น้ำหนักไม่สำเร็จ ส่วนการบันทึกอาหารเดิมยังใช้ได้ อ่าน [วิธีเปิดใช้และรายละเอียดข้อ 2–5](docs/features-2-5.md)
+**อัปเดต 16 ตุลาคม 2026:** รัน [20261009_preferences_weights.sql](supabase/migrations/20261009_preferences_weights.sql) บน Supabase `calorie-app` สำเร็จแล้ว ตรวจยืนยันตาราง RLS นโยบายสิทธิ์ และ trigger แล้ว ดู [ผลตรวจ](docs/verification-preferences-weights-2026-10-16.md) ยังรอทดสอบการใช้งานผ่านแอปและสองบัญชีจริง อ่าน [วิธีใช้ฟีเจอร์ข้อ 2–5](docs/features-2-5.md)
 
-**งานที่เลื่อนไว้:** ข้อ 1 ของรายการปรับปรุงล่าสุด ซึ่งเป็นการปรับชื่อไทย หน่วย และข้อมูล food catalog ให้ผู้ใช้จัดการภายหลัง
+**สถานะงานข้อมูลอาหาร:** เริ่มทำตามที่อนุมัติเมื่อ 16 ตุลาคม 2026 แล้ว ดูผลด้านบน ส่วนชื่อไทยที่ยังแปลไม่ครบอยู่ในรายการรอตรวจ
 
 ## อัปเดตข้อ 1–4 เดิม (9 ตุลาคม 2026)
 
@@ -180,6 +190,7 @@ Frontend (React UI)
 1. รัน `supabase/schema.sql` ใน Supabase Dashboard → SQL Editor
 2. หาก project มี schema เดิมอยู่แล้ว ให้รัน `supabase/migrations/20261002_food_catalog_search_index.sql` ตามด้วย `supabase/migrations/20261009_food_units_custom_logs.sql` และ `supabase/migrations/20261009_preferences_weights.sql` ทั้งไฟล์ตามลำดับ แล้วรัน `supabase/verify_steps_1_4.sql` เพื่อตรวจส่วน catalog/custom foods/food logs ใน SQL Editor ของ project/branch ที่ตรงกับ `.env`; ถ้ายังไม่พบตาราง/คอลัมน์ ใช้ `supabase/diagnose_steps_1_4.sql` ตรวจแบบอ่านอย่างเดียวก่อน
 3. จัดเตรียมข้อมูล catalog ในตาราง `public.foods` ผ่านกระบวนการจัดการข้อมูลของ Supabase; แอปไม่มี local catalog fallback และอ่านข้อมูลจาก Supabase ผ่าน backend API เท่านั้น
+   หากใช้ `supabase/fndds_foods_curated.csv` ฉบับเดิม ให้รัน `supabase/migrations/20261016_verified_catalog_metadata.sql` หลังนำเข้า CSV และ migration ก่อนหน้าแล้ว เพื่อเติมชื่อไทยและหน่วยบริโภค ไฟล์นี้ตรวจตัวตนและโภชนาการให้ตรงกับต้นฉบับก่อนแก้ไข หากข้อมูลต่างกันจะยกเลิกทั้ง transaction สำหรับ `calorie-app` ที่ตรวจวันที่ 16 ตุลาคม 2026 รันแล้ว
 4. เปิด Supabase Authentication และกำหนด Site URL/redirect URLs ให้ตรงกับเว็บที่จะใช้งาน ถ้าเปิดยืนยันอีเมล ผู้ใช้ต้องยืนยันอีเมลก่อนมี session
 
 ตั้งค่า Supabase URL และ **publishable key** ไว้ใน backend environment เท่านั้น; frontend เรียก API ของ backend และไม่มี Supabase client/key

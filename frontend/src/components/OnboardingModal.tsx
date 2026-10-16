@@ -1,11 +1,16 @@
 import { useMemo, useState } from "react";
 import type { ActivityLevel, Gender, Goal, HealthProfile } from "../types";
 import { computeHealthMetrics } from "../lib/health";
+import Icon from "./Icon";
+import Button from "./Button";
 
 interface Props {
   onComplete: (profile: HealthProfile, displayName: string) => void | Promise<void>;
   initialProfile?: HealthProfile;
   initialName?: string;
+  editing?: boolean;
+  isGuest?: boolean;
+  onCancel?: () => void;
 }
 
 const activities: { value: ActivityLevel; title: string; description: string }[] = [
@@ -21,9 +26,9 @@ const goals: { value: Goal; title: string; description: string }[] = [
   { value: "gain_muscle", title: "เพิ่มน้ำหนัก", description: "เพิ่มแคลอรีเพื่อสร้างกล้ามเนื้อ" },
 ];
 
-const fieldClass = "mt-1.5 min-h-12 w-full rounded-xl border border-[#e5e2da] bg-[#f8f5ef] px-3.5 text-sm text-[#1a2820] focus:border-[#2d6e3e] focus:bg-white";
+const fieldClass = "profile-input";
 
-export default function OnboardingModal({ onComplete, initialProfile, initialName = "" }: Props) {
+export default function OnboardingModal({ onComplete, initialProfile, initialName = "", editing = false, isGuest = false, onCancel }: Props) {
   const [step, setStep] = useState(1);
   const [displayName, setDisplayName] = useState(initialName);
   const [gender, setGender] = useState<Gender>(initialProfile?.gender ?? "male");
@@ -60,6 +65,10 @@ export default function OnboardingModal({ onComplete, initialProfile, initialNam
   };
 
   const finish = async () => {
+    if (!displayName.trim()) {
+      setSaveError("กรอกชื่อของคุณก่อนบันทึก");
+      return;
+    }
     if (!metrics) {
       setSaveError("ตรวจสอบอายุ ส่วนสูง และน้ำหนักให้ถูกต้องก่อน");
       return;
@@ -84,138 +93,69 @@ export default function OnboardingModal({ onComplete, initialProfile, initialNam
   };
 
   return (
-    <main className="min-h-screen bg-[#f8f5ef] px-4 py-8 sm:px-8">
-      <div className="mx-auto w-full max-w-[620px]">
-        <header className="mb-7 text-center">
-          <span className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-2xl bg-[#edf4ee] text-[#2d6e3e]">
-            <svg aria-hidden="true" className="h-7 w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M20 4c-7 0-13 3-13 10a6 6 0 0 0 6 6C20 20 20 12 20 4Z" /><path d="M4 21c2-5 6-8 11-11" />
-            </svg>
-          </span>
-          <h1 className="text-2xl font-extrabold text-[#1a2820]">NutriThai</h1>
-          <p className="mt-1 text-sm text-[#596c5c]">ตั้งค่าโปรไฟล์เพื่อแนะนำเป้าหมายสุขภาพของคุณ</p>
+    <main className="profile-page">
+      <div className="profile-container">
+        <header className="profile-topbar">
+          <div className="profile-brand"><Icon name="leaf" /><span>NutriThai<span className="profile-brand-dot">.</span></span></div>
+          {onCancel && <button type="button" className="profile-back" disabled={saving} onClick={onCancel}><Icon name="arrow" /> กลับไปหน้าเดิม</button>}
         </header>
-
-        <section className="rounded-[22px] border border-[#e5e2da] bg-white p-5 shadow-sm sm:p-8">
-          <header className="mb-6">
-            <div className="mb-3 flex items-center justify-between text-xs font-semibold text-[#596c5c]">
-              {step > 1 ? (
-                <button type="button" aria-label="ขั้นตอนก่อนหน้า" onClick={() => { setStep((current) => current - 1); setSaveError(""); }} className="grid h-9 w-9 place-items-center rounded-lg hover:bg-[#edf4ee]">
-                  <span aria-hidden="true" className="text-xl">‹</span>
-                </button>
-              ) : <span />}
-              <span>{step} / 3</span>
-            </div>
-            <div className="mb-4 h-1.5 overflow-hidden rounded-full bg-[#edf4ee]">
-              <div className="h-full rounded-full bg-[#2d6e3e] transition-all" style={{ width: `${(step / 3) * 100}%` }} />
-            </div>
-            <h2 className="text-lg font-bold text-[#1a2820]">
-              {step === 1 ? "ตั้งค่าโปรไฟล์ · ข้อมูลส่วนตัว" : step === 2 ? "ตั้งค่าโปรไฟล์ · ข้อมูลร่างกาย" : "ตั้งค่าโปรไฟล์ · ระดับกิจกรรม"}
-            </h2>
-          </header>
-
-          {step === 1 && (
-            <div className="space-y-5">
-              <label className="block text-sm font-medium text-[#1a2820]" htmlFor="profile-name">
-                ชื่อของคุณ
-                <input id="profile-name" value={displayName} onChange={(event) => setDisplayName(event.target.value)} maxLength={50} placeholder="สมชาย" className={fieldClass} />
-                <span className="mt-1 block text-xs font-normal text-[#718078]">ใช้แสดงในแอปเท่านั้น</span>
-              </label>
-              <label className="block text-sm font-medium text-[#1a2820]" htmlFor="profile-age">
-                อายุ (ปี)
-                <input id="profile-age" type="number" min="10" max="120" value={age} onChange={(event) => setAge(event.target.value)} className={fieldClass} />
-              </label>
-              <fieldset>
-                <legend className="mb-2 text-sm font-medium text-[#1a2820]">เพศ</legend>
-                <div className="grid grid-cols-2 gap-3">
-                  {(["male", "female"] as Gender[]).map((value) => (
-                    <button key={value} type="button" aria-pressed={gender === value} onClick={() => setGender(value)} className={`min-h-12 rounded-xl border px-3 text-sm font-semibold transition ${gender === value ? "border-[#2d6e3e] bg-[#edf4ee] text-[#245a33]" : "border-[#e5e2da] bg-white text-[#596c5c] hover:bg-[#f8f5ef]"}`}>
-                      {value === "male" ? "ชาย" : "หญิง"}
-                    </button>
-                  ))}
+        <header className="profile-page-heading">
+          <p className="eyebrow">A LITTLE MORE ABOUT YOU</p>
+          <h1>{editing ? "โปรไฟล์ของคุณ" : "เริ่มต้นดูแลตัวเอง"} <Icon name="leaf" /></h1>
+          <p>{editing ? "ปรับข้อมูลให้เป็นปัจจุบัน แล้วให้ทุกเป้าหมายเข้ากับคุณ" : "รู้จักคุณอีกนิด เพื่อเริ่มต้นเป้าหมายในแบบของคุณ"}</p>
+        </header>
+        <div className="profile-layout">
+          <div className="profile-editor">
+            <section className="profile-identity">
+              <div className="profile-avatar-large" aria-hidden="true">{displayName.trim().slice(0, 1) || <Icon name="user" />}</div>
+              <div><p className="profile-identity-label">MY NUTRITHAI</p><h2>{displayName.trim() || "ยินดีที่ได้รู้จัก"}</h2><span>{isGuest ? "โหมดผู้เยี่ยมชม" : "พื้นที่ดูแลโภชนาการของคุณ"}</span></div>
+              <Icon name="leaf" className="profile-identity-leaf" />
+            </section>
+            {!editing && <nav className="profile-steps" aria-label="ขั้นตอนตั้งค่าโปรไฟล์">
+              {["ข้อมูลส่วนตัว", "ร่างกายและเป้าหมาย", "ระดับกิจกรรม"].map((label, index) => <div key={label} aria-current={step === index + 1 ? "step" : undefined} className={step >= index + 1 ? "is-reached" : ""}><span>{index + 1}</span><p>{label}</p></div>)}
+              <span className="profile-step-count">{step} / 3</span>
+            </nav>}
+            <fieldset disabled={saving} className="profile-fields">
+              {(editing || step === 1) && <section className="profile-card">
+                <header className="profile-card-heading"><span className="profile-section-icon"><Icon name="user" /></span><div><h2>ข้อมูลส่วนตัว</h2><p>ชื่อที่อยากให้เราเรียก และข้อมูลสำหรับคำนวณ</p></div><span className="profile-section-number">01</span></header>
+                <div className="profile-field-grid">
+                  <label className="profile-name-field" htmlFor="profile-name">ชื่อของคุณ<input id="profile-name" value={displayName} onChange={event => setDisplayName(event.target.value)} maxLength={50} placeholder="ชื่อที่คุณอยากให้เราเรียก" className={fieldClass} /><span className="profile-field-hint">ใช้แสดงในแอปเท่านั้น</span></label>
+                  <label htmlFor="profile-age">อายุ (ปี)<input id="profile-age" type="number" inputMode="numeric" min="10" max="120" value={age} onChange={event => setAge(event.target.value)} className={fieldClass} /><span className="profile-field-hint">10–120 ปี</span></label>
                 </div>
-              </fieldset>
-            </div>
-          )}
-
-          {step === 2 && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-3">
-                <label className="block text-sm font-medium text-[#1a2820]" htmlFor="profile-height">
-                  ส่วนสูง (ซม.)
-                  <input id="profile-height" type="number" min="100" max="250" value={height} onChange={(event) => setHeight(event.target.value)} className={fieldClass} />
-                </label>
-                <label className="block text-sm font-medium text-[#1a2820]" htmlFor="profile-weight">
-                  น้ำหนัก (กก.)
-                  <input id="profile-weight" type="number" min="20" max="500" value={weight} onChange={(event) => setWeight(event.target.value)} className={fieldClass} />
-                </label>
+                <fieldset className="profile-gender"><legend>เพศที่ใช้คำนวณพลังงาน</legend><div>{(["male", "female"] as Gender[]).map(value => <button key={value} type="button" aria-pressed={gender === value} onClick={() => setGender(value)}>{value === "male" ? "ชาย" : "หญิง"}<span aria-hidden="true">{gender === value ? "✓" : ""}</span></button>)}</div></fieldset>
+              </section>}
+              {(editing || step === 2) && <section className="profile-card">
+                <header className="profile-card-heading"><span className="profile-section-icon is-aqua"><Icon name="chart" /></span><div><h2>ร่างกายและเป้าหมาย</h2><p>เริ่มจากสิ่งที่เป็นคุณในวันนี้</p></div><span className="profile-section-number">02</span></header>
+                <div className="profile-field-grid">
+                  <label htmlFor="profile-height">ส่วนสูง (ซม.)<input id="profile-height" type="number" inputMode="decimal" min="100" max="250" value={height} onChange={event => setHeight(event.target.value)} className={fieldClass} /><span className="profile-field-hint">100–250 ซม.</span></label>
+                  <label htmlFor="profile-weight">น้ำหนัก (กก.)<input id="profile-weight" type="number" inputMode="decimal" min="20" max="500" step="any" value={weight} onChange={event => setWeight(event.target.value)} className={fieldClass} /><span className="profile-field-hint">20–500 กก.</span></label>
+                </div>
+                <fieldset className="profile-options"><legend>เป้าหมายของคุณ</legend><div className="profile-goals">{goals.map((item, index) => <button key={item.value} type="button" aria-pressed={goal === item.value} onClick={() => setGoal(item.value)}><Icon name={index === 0 ? "leaf" : index === 1 ? "bowl" : "protein"} /><span><strong>{item.title}</strong><small>{item.description}</small></span><span className="profile-choice-check" aria-hidden="true">{goal === item.value ? "✓" : ""}</span></button>)}</div></fieldset>
+              </section>}
+              {(editing || step === 3) && <section className="profile-card">
+                <header className="profile-card-heading"><span className="profile-section-icon is-yellow"><Icon name="grain" /></span><div><h2>กิจกรรมในแต่ละวัน</h2><p>เลือกความเคลื่อนไหวที่ใกล้เคียงกับชีวิตจริง</p></div><span className="profile-section-number">03</span></header>
+                <fieldset className="profile-options"><legend className="sr-only">ระดับกิจกรรม</legend><div className="profile-activities">{activities.map((item, index) => <button key={item.value} type="button" aria-pressed={activityLevel === item.value} onClick={() => setActivityLevel(item.value)}><span className="profile-activity-bars" aria-hidden="true">{[0, 1, 2, 3].map(bar => <i key={bar} className={bar <= index ? "is-filled" : ""} />)}</span><span><strong>{item.title}</strong><small>{item.description}</small></span><span className="profile-choice-check" aria-hidden="true">{activityLevel === item.value ? "✓" : ""}</span></button>)}</div></fieldset>
+              </section>}
+            </fieldset>
+            {saveError && <div role="alert" className="profile-error">{saveError}</div>}
+            <footer className="profile-actions">
+              <p><Icon name="leaf" />{isGuest ? "ข้อมูลผู้เยี่ยมชมจะหายเมื่อรีเฟรช" : editing ? "การเปลี่ยนแปลงจะมีผลเมื่อกดบันทึก" : "ปรับข้อมูลเหล่านี้ได้ภายหลัง"}</p>
+              <div>{!editing && step > 1 && <button type="button" aria-label="ขั้นตอนก่อนหน้า" className="profile-previous" disabled={saving} onClick={() => { setStep(current => current - 1); setSaveError(""); }}>ย้อนกลับ</button>}
+                {!editing && step < 3 ? <Button onClick={next}>ถัดไป <Icon name="arrow" /></Button> : <Button onClick={() => void finish()} disabled={saving || !metrics}>{saving ? "กำลังบันทึก..." : editing ? "บันทึกการเปลี่ยนแปลง" : "เริ่มต้นใช้งาน"}<Icon name="arrow" /></Button>}
               </div>
-              <fieldset>
-                <legend className="mb-3 text-sm font-semibold text-[#1a2820]">เป้าหมายของคุณ</legend>
-                <div className="space-y-2">
-                  {goals.map((item) => (
-                    <button key={item.value} type="button" aria-pressed={goal === item.value} onClick={() => setGoal(item.value)} className={`flex min-h-[68px] w-full items-center justify-between rounded-xl border px-4 py-3 text-left transition ${goal === item.value ? "border-[#2d6e3e] bg-[#edf4ee]" : "border-[#e5e2da] hover:bg-[#f8f5ef]"}`}>
-                      <span>
-                        <span className="block text-sm font-semibold text-[#1a2820]">{item.title}</span>
-                        <span className="mt-0.5 block text-xs text-[#718078]">{item.description}</span>
-                      </span>
-                      <span aria-hidden="true" className={`grid h-5 w-5 place-items-center rounded-full border ${goal === item.value ? "border-[#2d6e3e] bg-[#2d6e3e] text-white" : "border-[#c9cec7]"}`}>{goal === item.value ? "✓" : ""}</span>
-                    </button>
-                  ))}
-                </div>
-              </fieldset>
-            </div>
-          )}
-
-          {step === 3 && (
-            <div className="space-y-5">
-              <fieldset>
-                <legend className="mb-3 text-sm font-semibold text-[#1a2820]">ระดับกิจกรรม</legend>
-                <div className="space-y-2">
-                  {activities.map((item) => (
-                    <button key={item.value} type="button" aria-pressed={activityLevel === item.value} onClick={() => setActivityLevel(item.value)} className={`flex min-h-16 w-full items-center justify-between rounded-xl border px-4 py-3 text-left transition ${activityLevel === item.value ? "border-[#2d6e3e] bg-[#edf4ee]" : "border-[#e5e2da] hover:bg-[#f8f5ef]"}`}>
-                      <span>
-                        <span className="block text-sm font-semibold text-[#1a2820]">{item.title}</span>
-                        <span className="mt-0.5 block text-xs text-[#718078]">{item.description}</span>
-                      </span>
-                      <span aria-hidden="true" className={`grid h-5 w-5 place-items-center rounded-full border ${activityLevel === item.value ? "border-[#2d6e3e] bg-[#2d6e3e] text-white" : "border-[#c9cec7]"}`}>{activityLevel === item.value ? "✓" : ""}</span>
-                    </button>
-                  ))}
-                </div>
-              </fieldset>
-              {metrics && (
-                <section className="rounded-xl border border-[#e5e2da] bg-[#f8f5ef] p-4" aria-label="เป้าหมายรายวันที่แนะนำ">
-                  <h3 className="mb-3 text-sm font-semibold text-[#1a2820]">เป้าหมายรายวันที่แนะนำ</h3>
-                  <div className="grid grid-cols-4 gap-2 text-center">
-                    {[
-                      { label: "แคลอรี", value: metrics.calorieGoal, unit: "kcal", color: "text-[#2d6e3e]" },
-                      { label: "โปรตีน", value: metrics.proteinGoal, unit: "g", color: "text-[#4f84a8]" },
-                      { label: "คาร์บ", value: metrics.carbsGoal, unit: "g", color: "text-[#d97706]" },
-                      { label: "ไขมัน", value: metrics.fatGoal, unit: "g", color: "text-[#66845d]" },
-                    ].map((item) => (
-                      <div key={item.label} className="min-w-0">
-                        <p className={`text-base font-extrabold sm:text-lg ${item.color}`}>{item.value.toLocaleString()}</p>
-                        <p className="text-[10px] text-[#718078] sm:text-xs">{item.unit} · {item.label}</p>
-                      </div>
-                    ))}
-                  </div>
-                  <p className="mt-3 border-t border-[#e5e2da] pt-3 text-xs leading-5 text-[#718078]">เป้าหมายเป็นค่าประมาณสำหรับติดตามทั่วไป ไม่ใช่คำแนะนำทางการแพทย์</p>
-                </section>
-              )}
-            </div>
-          )}
-
-          {saveError && <div role="alert" className="mt-5 rounded-xl border border-[#f0c9c4] bg-[#fff1ef] p-3 text-sm text-[#9d302b]">{saveError}</div>}
-          {step < 3 ? (
-            <button type="button" onClick={next} className="mt-6 min-h-12 w-full rounded-xl bg-[#2d6e3e] px-4 text-sm font-bold text-white transition hover:bg-[#245a33]">
-              ถัดไป <span aria-hidden="true">›</span>
-            </button>
-          ) : (
-            <button type="button" onClick={() => void finish()} disabled={saving || !metrics} className="mt-6 min-h-12 w-full rounded-xl bg-[#2d6e3e] px-4 text-sm font-bold text-white transition hover:bg-[#245a33] disabled:opacity-50">
-              {saving ? "กำลังบันทึก..." : "เริ่มต้นใช้งาน"}
-            </button>
-          )}
-        </section>
+            </footer>
+          </div>
+          <aside className="profile-summary" aria-label="สรุปเป้าหมายของคุณ">
+            <section className="profile-target" aria-label="เป้าหมายรายวันที่แนะนำ">
+              <p className="eyebrow">YOUR DAILY BALANCE</p><h2>เป้าหมายในแบบของคุณ</h2><p>คำนวณจากข้อมูลที่คุณเลือก</p>
+              <div className="profile-target-ring"><svg viewBox="0 0 200 200" aria-hidden="true"><circle cx="100" cy="100" r="84" /><circle cx="100" cy="100" r="84" /></svg><div><span>พลังงานต่อวัน</span><strong>{metrics ? metrics.calorieGoal.toLocaleString() : "—"}</strong><span>kcal / วัน</span></div></div>
+              <span className="profile-goal-badge"><Icon name="leaf" />{goals.find(item => item.value === goal)?.title}</span>
+              <div className="profile-macro-targets">{[{ label: "โปรตีน", value: metrics?.proteinGoal, icon: "protein" }, { label: "คาร์บ", value: metrics?.carbsGoal, icon: "grain" }, { label: "ไขมัน", value: metrics?.fatGoal, icon: "drop" }].map(item => <div key={item.label}><span><Icon name={item.icon} /></span><p>{item.label}</p><strong>{item.value ?? "—"}<small> g</small></strong></div>)}</div>
+              {!metrics && <p className="profile-summary-notice">กรอกอายุ ส่วนสูง และน้ำหนักให้ครบ เพื่อดูเป้าหมายของคุณ</p>}
+            </section>
+            <section className="profile-energy-explainer"><span className="profile-section-icon"><Icon name="bowl" /></span><h3>รู้จักพลังงานของคุณ</h3><dl><div><dt>พลังงานพื้นฐาน (BMR)</dt><dd>{metrics ? metrics.bmr.toLocaleString() : "—"}<small> kcal</small></dd></div><div><dt>พลังงานที่ใช้ต่อวัน (TDEE)</dt><dd>{metrics ? metrics.tdee.toLocaleString() : "—"}<small> kcal</small></dd></div></dl><p>เป้าหมายเป็นค่าประมาณสำหรับติดตามทั่วไป ไม่ใช่คำแนะนำทางการแพทย์</p></section>
+          </aside>
+        </div>
       </div>
     </main>
   );

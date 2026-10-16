@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { WeightLog } from "../types";
 import { localDateKey } from "../lib/foodLogs";
+import Icon from "./Icon";
 
 export default function WeightTracker({ weights, start, end, onSave, onDelete }: {
   weights: WeightLog[]; start: string; end: string;
@@ -16,8 +17,8 @@ export default function WeightTracker({ weights, start, end, onSave, onDelete }:
   const max = Math.max(...entries.map(row => row.weightKg)) + 1;
   const span = Math.max(86400000, new Date(`${end}T12:00:00`).getTime() - new Date(`${start}T12:00:00`).getTime());
   const points = entries.map(row => ({ ...row, x: 25 + (new Date(`${row.measuredOn}T12:00:00`).getTime() - new Date(`${start}T12:00:00`).getTime()) / span * 550, y: 160 - (row.weightKg - min) / (max - min) * 130 }));
-  return <section aria-label="บันทึกและแนวโน้มน้ำหนัก" className="my-5 space-y-3 rounded-[22px] border bg-white p-5">
-    <h2 className="font-bold">น้ำหนักและแนวโน้ม</h2>
+  return <section aria-label="บันทึกและแนวโน้มน้ำหนัก" className="weight-tracker my-5 space-y-3 rounded-[22px] border bg-white p-5">
+    <h2 className="font-bold"><Icon name="chart" /> น้ำหนักและแนวโน้ม</h2>
     <p className="text-xs text-[#596c5c]">หนึ่งค่าต่อวัน บันทึกวันที่เดิมเพื่อแก้ไข น้ำหนักที่บันทึกไม่เปลี่ยนเป้าพลังงานในโปรไฟล์อัตโนมัติ</p>
     {onSave && <form className="flex flex-wrap items-end gap-3" onSubmit={async e => {
       e.preventDefault(); const kg = Number(value); setError(""); setMessage("");

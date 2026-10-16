@@ -1,14 +1,26 @@
 @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=Sarabun:wght@300;400;500;600;700;800&display=swap');
 @import 'tailwindcss';
+@import './soft-green.css';
+@import './food-logger.css';
+@import './profile.css';
+@import './remaining-pages.css';
 
 :root {
-  --ink: #1a2820;
-  --ink-muted: #596c5c;
+  --ink: #222b2e;
+  --ink-muted: #657373;
   --ink-soft: #718078;
   --surface: #ffffff;
-  --surface-soft: #f8f5ef;
-  --line: #e5e2da;
-  --brand: #2d6e3e;
+  --surface-soft: #f5f7f4;
+  --canvas: #f5f7f4;
+  --dark: #242e32;
+  --lime: #e1f5a3;
+  --mint: #ccebc5;
+  --aqua: #dff3f5;
+  --muted: #657373;
+  --gap: 20px;
+  --card-radius: 28px;
+  --line: #e8ece7;
+  --brand: #326b4c;
   --brand-deep: #245a33;
   --accent: #d97706;
   --danger: #9d302b;

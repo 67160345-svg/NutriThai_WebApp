@@ -13,6 +13,23 @@ const log: FoodLog = { id: "past", food, servings: 1.5, loggedAt: yesterday, mea
 afterEach(cleanup);
 
 describe("recommendations in add-food flow", () => {
+  it("lets the user choose bundle mode, inspect macros, and pass editable items to the meal composer", () => {
+    const onPlan = vi.fn();
+    const chicken = { ...food, id: 2, name: "Chicken", nameTh: "ไก่ทดสอบ", calories: 180, protein: 35, carbs: 0, fat: 4 };
+    render(<FoodRecommendations foods={[food, chicken]} customFoods={[]} logs={[]} profile={profile} date={date} meal="lunch" category="all" onMealChange={vi.fn()} onSelect={vi.fn()} onPlan={onPlan} />);
+    expect(screen.queryByText("ไอเดียชุดมื้ออาหาร")).toBeNull();
+    fireEvent.change(screen.getByLabelText("แนวทางแนะนำ"), { target: { value: "meal" } });
+    fireEvent.change(screen.getByLabelText("สารอาหารที่ต้องการเน้น"), { target: { value: "protein" } });
+    expect(screen.getByText("ไอเดียชุดมื้ออาหาร")).toBeTruthy();
+    expect(screen.getByText(/รวม .* kcal · โปรตีน/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "เลือกชุดนี้และปรับปริมาณ" }));
+    expect(onPlan).toHaveBeenCalledOnce();
+    expect(onPlan.mock.calls[0][0]).toHaveLength(2);
+    fireEvent.change(screen.getByLabelText("แนวทางแนะนำ"), { target: { value: "familiar" } });
+    expect(screen.queryByLabelText("สารอาหารที่ต้องการเน้น")).toBeNull();
+    expect(screen.queryByText("ไอเดียชุดมื้ออาหาร")).toBeNull();
+    expect(screen.getByRole("button", { name: /ข้าวทดสอบ/ })).toBeTruthy();
+  });
   it("selects a recommended meal and quantity and saves through the existing handler", async () => {
     const save = vi.fn().mockResolvedValue(undefined);
     render(<FoodLogger foods={[food]} logs={[log]} healthProfile={profile} onAddLog={save} isAuthenticated />);

@@ -1,6 +1,8 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { updatePassword } from "../lib/api";
+import AuthLayout from "./AuthLayout";
+import Icon from "./Icon";
 
 interface Props {
   onComplete: () => void;
@@ -32,9 +34,11 @@ export default function PasswordRecovery({ onComplete }: Props) {
   };
 
   return (
-    <main className="min-h-screen flex items-center justify-center p-4">
-      <form onSubmit={handleSubmit} className="w-full max-w-md space-y-4 rounded-[22px] border border-[#e5e2da] bg-white p-6 shadow-sm sm:p-10">
-        <div>
+    <AuthLayout>
+      <form onSubmit={handleSubmit} className="auth-form-card recovery-form space-y-4">
+        <div className="auth-form-heading">
+          <span className="auth-recovery-icon"><Icon name="user" /></span>
+          <p className="eyebrow">A FRESH START</p>
           <h1 className="text-2xl font-bold text-[#1a2820]">ตั้งรหัสผ่านใหม่</h1>
           <p className="mt-2 text-sm text-[#596c5c]">ตั้งรหัสผ่านใหม่อย่างน้อย 8 ตัวอักษร</p>
         </div>
@@ -71,6 +75,6 @@ export default function PasswordRecovery({ onComplete }: Props) {
           {isSaving ? "กำลังบันทึก..." : "บันทึกรหัสผ่านใหม่"}
         </button>
       </form>
-    </main>
+    </AuthLayout>
   );
 }

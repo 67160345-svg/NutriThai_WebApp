@@ -52,7 +52,7 @@ describe("nutrition screens", () => {
     render(<Dashboard healthProfile={profile} logs={[makeLog()]} onRemoveLog={onRemoveLog} onNavigate={onNavigate} username="อรุณ" />);
 
     expect(screen.getByText(/สวัสดี อรุณ/)).toBeTruthy();
-    expect(screen.getByText("200")).toBeTruthy();
+    expect(screen.getByLabelText(`200 จาก ${profile.calorieGoal} kcal`)).toBeTruthy();
     expect(screen.getByRole("progressbar", { name: "โปรตีน" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: /ดูประวัติ/ }));
     expect(onNavigate).toHaveBeenCalledWith("history");

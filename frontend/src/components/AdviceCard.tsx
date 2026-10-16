@@ -2,6 +2,8 @@ import { basisLabel } from "../lib/portions";
 import { useState } from "react";
 import { Food, FoodLog, HealthProfile, WeightLog, FoodPreferences } from "../types";
 import WeightTracker from "./WeightTracker";
+import PageHeading from "./PageHeading";
+import Icon from "./Icon";
 import { insightDates, rollingStart } from "../lib/insights";
 import { foodKey } from "../lib/recommendations";
 import { getTotals } from "../lib/health";
@@ -54,16 +56,19 @@ export default function AdviceCard({ healthProfile, logs, foods, weights = [], o
     : [];
 
   return (
-    <div className="mx-auto w-full max-w-[1160px] px-4 py-7 sm:px-8">
-      <div className="mb-5">
-        <h1 className="text-2xl font-bold text-[#1a2820]">ข้อมูลเชิงลึก</h1>
+    <div className="soft-page insights-page">
+      <PageHeading eyebrow="SMALL STEPS, BIGGER PICTURE" title="ข้อมูลเชิงลึก" description="เห็นแนวโน้มของคุณ เรียนรู้และปรับไปทีละวัน" />
+      <div className="insights-range mb-5">
         <p className="mt-1 text-sm text-[#596c5c]">แนวโน้มอาหารและน้ำหนักในช่วง {start} ถึง {end}</p>
         <label className="mt-3 block text-sm">ช่วงเวลาข้อมูลเชิงลึก<select value={range} onChange={e => setRange(e.target.value)} className="ml-2 rounded-lg border bg-white p-2"><option value="7">7 วันล่าสุด</option><option value="30">30 วันล่าสุด</option><option value="90">90 วันล่าสุด</option><option value="custom">กำหนดเอง</option></select></label>
         {range === "custom" && <div className="mt-3 flex flex-wrap gap-3"><label>วันเริ่มต้น<input type="date" value={customStart} max={customEnd} onChange={e => setCustomStart(e.target.value)} className="ml-2 rounded border p-2" /></label><label>วันสิ้นสุด<input type="date" value={customEnd} max={todayKey} onChange={e => setCustomEnd(e.target.value)} className="ml-2 rounded border p-2" /></label></div>}
         {!dates.length && <p role="alert" className="mt-2 text-sm text-rose-700">เลือกช่วงวันที่ที่ถูกต้อง ไม่เกิน 366 วัน และไม่เกินวันนี้</p>}
       </div>
 
-      <section className="mb-5 rounded-[22px] border border-[#e5e2da] bg-white p-5 shadow-sm sm:p-6" aria-labelledby="weekly-calories-title">
+      <div className="insight-stat-grid">
+        {[{ icon: "bowl", label: "พลังงานเฉลี่ยต่อวัน", value: trackedDays.length ? averageCalories.toLocaleString() : "—", unit: "kcal", note: "เฉพาะวันที่มีบันทึก" }, { icon: "clock", label: "วันที่คุณบันทึก", value: String(trackedDays.length), unit: `/ ${weekly.length} วัน`, note: "ทุกบันทึกช่วยให้เห็นภาพชัดขึ้น" }, { icon: "leaf", label: "เป้าหมายพลังงาน", value: healthProfile.calorieGoal.toLocaleString(), unit: "kcal / วัน", note: "จากโปรไฟล์ของคุณ" }].map(item => <section className="insight-stat" key={item.label}><span><Icon name={item.icon} /></span><p>{item.label}</p><strong>{item.value}<small>{item.unit}</small></strong><p>{item.note}</p></section>)}
+      </div>
+      <section className="insight-chart mb-5 rounded-[22px] border border-[#e5e2da] bg-white p-5 shadow-sm sm:p-6" aria-labelledby="weekly-calories-title">
         <h2 id="weekly-calories-title" className="text-base font-bold text-[#1a2820]">แคลอรีตามช่วงเวลาที่เลือก</h2>
         <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-[#596c5c]">
           <span className="flex items-center gap-2"><i className="h-2.5 w-2.5 rounded-full bg-[#2d6e3e]" />รับประทาน</span>
@@ -104,7 +109,7 @@ export default function AdviceCard({ healthProfile, logs, foods, weights = [], o
         </details>
       </section>
 
-      <section className="mb-5 rounded-[22px] border border-[#e5e2da] bg-white p-5 shadow-sm sm:p-6">
+      <section className="insight-observations mb-5 rounded-[22px] border border-[#e5e2da] bg-white p-5 shadow-sm sm:p-6">
         <h2 className="mb-4 text-base font-bold text-[#1a2820]">ข้อสังเกตจากข้อมูลของคุณ</h2>
         {trackedDays.length ? (
           <div className="space-y-4">

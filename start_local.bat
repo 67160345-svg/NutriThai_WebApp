@@ -17,9 +17,9 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -Command ^
   "Start-Process -FilePath $env:ComSpec -ArgumentList $backendCommand;" ^
   "Start-Process -FilePath $env:ComSpec -ArgumentList $frontendCommand;" ^
   "$ngrok = Get-Command ngrok -ErrorAction SilentlyContinue;" ^
-  "if ($ngrok) { Start-Process -FilePath $env:ComSpec -ArgumentList '/k ngrok http 8443' } else { Write-Output 'ngrok not found; starting local frontend and backend only.' };" ^
-  "Start-Process 'http://localhost:8443';" ^
-  "Write-Output 'Local services are starting. Frontend: http://localhost:8443  Backend docs: http://localhost:8000/docs'"
+  "if ($ngrok) { Start-Process -FilePath $env:ComSpec -ArgumentList '/k ngrok http 3000' } else { Write-Output 'ngrok not found; starting local frontend and backend only.' };" ^
+  "Start-Process 'http://localhost:3000';" ^
+  "Write-Output 'Local services are starting. Frontend: http://localhost:3000  Backend docs: http://localhost:8000/docs'"
 
 if errorlevel 1 (
   echo Failed to start local services. Check the messages above.

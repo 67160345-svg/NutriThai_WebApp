@@ -1,4 +1,6 @@
 import FoodLogEditor from "./FoodLogEditor";
+import PageHeading from "./PageHeading";
+import Icon from "./Icon";
 import CopyMealForm from "./CopyMealForm";
 import { consumedLabel } from "../lib/portions";
 import { useMemo, useState } from "react";
@@ -52,8 +54,8 @@ export default function History({ logs, onRemoveLog, onUpdateServings, onUpdateL
   const maxDate = localDateKey(new Date());
 
   return (
-    <div className="mx-auto w-full max-w-[1160px] px-4 py-7 sm:px-8">
-      <h1 className="mb-5 text-2xl font-bold text-[#1a2820]">ประวัติอาหาร</h1>
+    <div className="soft-page history-page">
+      <PageHeading eyebrow="EVERY MEAL TELLS A STORY" title="ประวัติอาหาร" description="ย้อนดูแต่ละมื้อ แล้วค่อย ๆ รู้จักการกินของตัวเอง" />
       {copyItems && onCopyMeal && <CopyMealForm key={copyItems.map(item => item.id).join(",")} items={copyItems} onCopy={onCopyMeal} onDone={date => { setSelectedDate(date); setCopyItems(null); }} />}
       {editingId && onUpdateLog && logs.find(log => log.id === editingId) && <FoodLogEditor
         key={editingId} log={logs.find(log => log.id === editingId)!} customFoods={customFoods}
@@ -62,7 +64,7 @@ export default function History({ logs, onRemoveLog, onUpdateServings, onUpdateL
         }} />}
 
 
-      <div className="mb-5 flex items-end gap-3">
+      <div className="history-date-picker mb-5 flex items-end gap-3">
         <button
           type="button"
           aria-label="วันก่อนหน้า"
@@ -106,7 +108,7 @@ export default function History({ logs, onRemoveLog, onUpdateServings, onUpdateL
         ))}
       </div>
 
-      <section className="mb-5 rounded-[22px] border border-[#e5e2da] bg-white p-5 shadow-sm" aria-label="สรุปโภชนาการ">
+      <section className="history-summary mb-5 rounded-[22px] border border-[#e5e2da] bg-white p-5 shadow-sm" aria-label="สรุปโภชนาการ">
         <h2 className="mb-4 text-sm font-semibold text-[#596c5c]">สรุปโภชนาการ</h2>
         <div className="grid grid-cols-2 gap-4 text-center sm:grid-cols-4">
           {[
@@ -115,7 +117,8 @@ export default function History({ logs, onRemoveLog, onUpdateServings, onUpdateL
             { label: "คาร์บ", value: Math.round(totals.carbs), unit: "g", color: "text-[#a46616]" },
             { label: "ไขมัน", value: Math.round(totals.fat), unit: "g", color: "text-[#66845d]" },
           ].map((item) => (
-            <div key={item.label}>
+            <div key={item.label} className="history-metric">
+              <span className="history-metric-icon"><Icon name={item.label === "แคลอรี" ? "bowl" : item.label === "โปรตีน" ? "protein" : item.label === "คาร์บ" ? "grain" : "drop"} /></span>
               <div className={`text-xl font-extrabold ${item.color}`}>{item.value}</div>
               <div className="text-xs text-[#718078]">{item.unit}</div>
               <div className="text-xs text-[#596c5c]">{item.label}</div>
@@ -130,15 +133,15 @@ export default function History({ logs, onRemoveLog, onUpdateServings, onUpdateL
         if (!items.length) return null;
         const mealCalories = Math.round(items.reduce((sum, item) => sum + item.food.calories * item.servings, 0));
         return (
-          <section key={meal.id} className="mb-3 overflow-hidden rounded-[20px] border border-[#e5e2da] bg-white shadow-sm">
+          <section key={meal.id} className={`history-meal history-meal--${meal.id} mb-3 overflow-hidden rounded-[20px] border border-[#e5e2da] bg-white shadow-sm`}>
             <header className="flex items-center justify-between border-b border-[#edf4ee] bg-[#fbfcf9] px-4 py-3">
-              <h3 className="flex items-center gap-2 font-semibold text-[#1a2820]"><span aria-hidden="true" className="text-[#2d6e3e]">{meal.icon}</span>{meal.label}</h3>
+              <h3 className="flex items-center gap-2 font-semibold text-[#1a2820]"><Icon name="bowl" />{meal.label}</h3>
               <span className="text-sm text-[#596c5c]">{mealCalories} kcal</span>
               {onCopyMeal && <button type="button" disabled={copyItems !== null} onClick={() => setCopyItems(items)} className="rounded-lg border px-3 py-1 text-xs disabled:opacity-50">คัดลอก{meal.label}</button>}
             </header>
             {items.map((log) => (
-              <div key={log.id} className="flex items-center gap-3 border-b border-[#edf4ee] px-4 py-3 last:border-0">
-                <span aria-hidden="true" className="grid h-11 w-11 shrink-0 place-items-center rounded-[14px] bg-[#f3f0ea] text-xl">{log.food.category === "drink" ? "♧" : log.food.category === "dessert" ? "✿" : "♨"}</span>
+              <div key={log.id} className="history-food-row flex items-center gap-3 border-b border-[#edf4ee] px-4 py-3 last:border-0">
+                <span aria-hidden="true" className="grid h-11 w-11 shrink-0 place-items-center rounded-[14px] bg-[#f3f0ea] text-xl"><Icon name={log.food.category === "drink" ? "drop" : "bowl"} /></span>
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-sm font-semibold text-[#1a2820]">{log.food.nameTh}</div>
                   <div className="text-xs text-[#718078]">{consumedLabel(log.food, log.servings)} · {Math.round(log.food.calories * log.servings)} kcal</div>
@@ -193,7 +196,7 @@ export default function History({ logs, onRemoveLog, onUpdateServings, onUpdateL
                   onClick={() => onRemoveLog(log.id)}
                   className="grid h-10 w-10 shrink-0 place-items-center rounded-lg text-[#718078] hover:bg-[#fff0ed] hover:text-[#9d302b]"
                 >
-                  ♧
+                  <Icon name="trash" />
                 </button>
               </div>
             ))}
@@ -201,8 +204,8 @@ export default function History({ logs, onRemoveLog, onUpdateServings, onUpdateL
         );
       })}
       {!selectedLogs.length && (
-        <div className="rounded-[22px] border border-dashed border-[#d8d7ce] bg-white p-10 text-center">
-          <div aria-hidden="true" className="mb-2 text-3xl">◷</div>
+        <div className="soft-empty rounded-[22px] border border-dashed border-[#d8d7ce] bg-white p-10 text-center">
+          <span className="soft-empty-icon"><Icon name="bowl" /></span>
           <div className="font-semibold text-[#1a2820]">ไม่มีรายการอาหารในวันนี้</div>
           <div className="mt-1 text-sm text-[#718078]">เลือกวันอื่นหรือเริ่มบันทึกอาหารของคุณ</div>
         </div>
