@@ -1,0 +1,24 @@
+{
+  "project_url": "https://udovwhbldemhknhmftln.supabase.co",
+  "date_bangkok": "2026-10-16",
+  "catalog_rows": 4580,
+  "thai_names": 1140,
+  "explicit_portion_weights": 4580,
+  "pending_thai_translation": 3440,
+  "all_food_ids_unchanged": true,
+  "all_nutrition_and_english_names_unchanged": true,
+  "all_serving_metadata_matches_reviewed_source": true,
+  "thai_search_result_counts": {
+    "ข้าว": 8,
+    "นม": 8,
+    "ไข่": 8,
+    "กล้วย": 2
+  },
+  "conversion_example": {
+    "food": "นม เต็มมันเนย",
+    "grams": 122,
+    "calories": 74.4
+  },
+  "upstream_usda_files_independently_downloaded": false,
+  "source": "supabase/fndds_foods_curated.csv (explicit named portions)"
+}
