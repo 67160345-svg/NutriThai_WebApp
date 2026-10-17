@@ -1,0 +1,17 @@
+{
+  "date_bangkok": "2026-10-17",
+  "catalog_rows": 4580,
+  "thai_names_first": 1140,
+  "english_fallback_retained": 3440,
+  "browse_limit_applied_after_language_priority": true,
+  "milk_search_first_8_thai": true,
+  "english_only_search_retained": true,
+  "paged_browse_has_no_duplicates_or_missing_rows": true,
+  "first_5_names": [
+    "กระเจี๊ยบเขียว แช่แข็ง ปรุงสุก เติมไขมัน",
+    "กระเจี๊ยบเขียว แช่แข็ง ปรุงสุก ไม่เติมไขมัน",
+    "กระเจี๊ยบเขียว ดอง",
+    "กระเจี๊ยบเขียว สด ปรุงสุก เติมไขมัน",
+    "กระเจี๊ยบเขียว สด ปรุงสุก ไม่เติมไขมัน"
+  ]
+}

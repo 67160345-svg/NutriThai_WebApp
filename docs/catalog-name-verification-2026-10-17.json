@@ -1,0 +1,34 @@
+{
+  "date_bangkok": "2026-10-17",
+  "rows": 4580,
+  "separated_names": 4580,
+  "all_ids_nutrition_thai_names_and_serving_metadata_unchanged": true,
+  "original_names_preserved": true,
+  "search_counts": {
+    "Milk": 8,
+    "นม": 8,
+    "ข้าว": 8,
+    "%": 8,
+    "_": 0
+  },
+  "examples": [
+    {
+      "name": "Milk, whole",
+      "source_portion": "1 cup, 244 g",
+      "calories": 148.8,
+      "protein": 8.0
+    },
+    {
+      "name": "Milk, reduced fat (2%)",
+      "source_portion": "1 cup, 244 g",
+      "calories": 122.0,
+      "protein": 8.2
+    },
+    {
+      "name": "Milk, low fat (1%)",
+      "source_portion": "1 cup, 244 g",
+      "calories": 104.9,
+      "protein": 8.2
+    }
+  ]
+}
