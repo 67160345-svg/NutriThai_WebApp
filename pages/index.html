@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="NutriThai ผลงานเว็บแอปโภชนาการ โดย นพรัตน์ โพธิ์สาวัง รหัสนิสิต 67160345">
+  <meta name="color-scheme" content="light dark">
+  <title>NutriThai · นพรัตน์ โพธิ์สาวัง</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">ข้ามไปเนื้อหา</a>
+  <header class="site-header wrap">
+    <a class="brand" href="#" aria-label="NutriThai หน้าแรก"><span aria-hidden="true">✳</span> NutriThai<span class="brand-dot">.</span></a>
+    <nav aria-label="เมนูหลัก"><a href="#about">About Me</a><a href="#skills">Skills</a><a href="#contact">Contact</a></nav>
+    <button class="theme-button" id="themeBtn" type="button" aria-pressed="false">โหมดมืด <span aria-hidden="true">◐</span></button>
+  </header>
+  <main id="main">
+    <section class="hero wrap" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <p class="eyebrow"><span class="status-dot"></span> WEB DEVELOPMENT PROJECT / 2026</p>
+        <h1 id="hero-title">กินดีขึ้นอีกนิด<br>เริ่มที่<span>ความเข้าใจ</span></h1>
+        <p class="lead">รู้จัก NutriThai โปรเจกต์เว็บแอปติดตามโภชนาการ<br class="desktop-break"> ที่เปลี่ยนบันทึกอาหารให้เป็นภาพรวมที่เข้าใจง่าย</p>
+        <div class="actions"><a class="button primary" href="#project">สำรวจโปรเจกต์ <span aria-hidden="true">↗</span></a><a class="text-link" href="https://github.com/67160345-svg/NutriThai_WebApp">ดู Source Code <span aria-hidden="true">↗</span></a></div>
+        <p class="hero-caption">ออกแบบเพื่ออาหารไทย · พัฒนาด้วย React และ FastAPI</p>
+      </div>
+      <div class="hero-art" aria-label="ตัวอย่างแนวคิดการแสดงข้อมูลโภชนาการ">
+        <div class="art-top"><span>YOUR DAILY NOURISHMENT</span><span aria-hidden="true">✳</span></div>
+        <div class="nutrition-ring"><div><span>ทีละมื้อ ทีละวัน</span><strong>NutriThai<span>.</span></strong><span>ดูแลตัวเองในแบบของคุณ</span></div></div>
+        <div class="art-bottom"><div><span class="mini-icon" aria-hidden="true">＋</span><p>บันทึกง่าย<small>อาหารและปริมาณ</small></p></div><div><span class="mini-icon" aria-hidden="true">↗</span><p>เห็นภาพรวม<small>พลังงานและสารอาหาร</small></p></div></div>
+        <span class="floating-note">A LITTLE BETTER,<br><strong>EVERY DAY.</strong></span>
+      </div>
+    </section>
+    <div class="project-strip"><div class="wrap"><span>01 / PERSONAL PROJECT</span><p>จากไอเดีย สู่โค้ด และเว็บไซต์ที่เผยแพร่อัตโนมัติ</p><span aria-hidden="true">↓</span></div></div>
+    <section class="section wrap about-grid" id="about" aria-labelledby="about-title">
+      <div><p class="eyebrow">THE PERSON BEHIND THE PROJECT</p><h2 id="about-title">About Me<span>.</span></h2></div>
+      <div><h3 class="person-name">นพรัตน์ โพธิ์สาวัง</h3><p class="student-id">รหัสนิสิต 67160345</p><p>โปรเจกต์ NutriThai เป็นผลงานพัฒนาเว็บแอปสำหรับบันทึกอาหารไทย ติดตามพลังงานและสารอาหาร พร้อมแสดงข้อมูลย้อนหลัง เพื่อให้ผู้ใช้เห็นพฤติกรรมการกินของตนเองได้ชัดเจนขึ้น</p><p>หน้านี้จัดทำสำหรับแลป GitHub Actions + GitHub Pages โดยใช้ HTML, CSS และ JavaScript และเผยแพร่ผ่าน Workflow อัตโนมัติ</p></div>
+    </section>
+    <section class="section wrap" id="project" aria-labelledby="project-title">
+      <div class="section-heading"><div><p class="eyebrow">DESIGNED FOR EVERYDAY LIFE</p><h2 id="project-title">รู้จัก NutriThai<span>.</span></h2></div><span class="label">PROJECT SHOWCASE</span></div>
+      <div class="feature-grid">
+        <article><span class="feature-number">01</span><h3>บันทึกอาหาร</h3><p>เลือกอาหารและปริมาณที่กิน จัดรายการเป็นมื้อ และดูสารอาหารในแต่ละวัน</p></article>
+        <article><span class="feature-number">02</span><h3>เห็นแนวโน้ม</h3><p>ดูประวัติอาหาร ข้อมูลเชิงลึก และแนวโน้มน้ำหนักในช่วงเวลาที่เลือก</p></article>
+        <article><span class="feature-number">03</span><h3>สแกนด้วย AI</h3><p>วิเคราะห์ภาพอาหารผ่าน Gemini และตรวจสอบผลก่อนบันทึกในแอป</p></article>
+      </div>
+      <figure class="project-preview"><img src="assets/preview.png" alt="ภาพตัวอย่าง NutriThai Dashboard มีกราฟพลังงาน สารอาหาร และบันทึกแต่ละมื้อ" loading="lazy" width="1168" height="863"><figcaption>ภาพตัวอย่างหน้าจอจากโปรเจกต์ · ข้อมูลประกอบการออกแบบ</figcaption></figure>
+      <p class="hosting-note">หน้านี้เป็นเว็บไซต์แนะนำผลงานแบบ Static ส่วนการเข้าสู่ระบบ บันทึกอาหาร และสแกน AI ของแอปเต็ม ต้องใช้งานร่วมกับเซิร์ฟเวอร์ FastAPI ที่ติดตั้งแยกต่างหาก</p>
+    </section>
+    <section class="section wrap" id="skills" aria-labelledby="skills-title">
+      <div class="section-heading"><div><p class="eyebrow">TOOLS BEHIND THE EXPERIENCE</p><h2 id="skills-title">Skills<span>.</span></h2></div><p>เทคโนโลยีที่ใช้ในโปรเจกต์นี้</p></div>
+      <div class="skills-grid"><article><span>FRONTEND</span><h3>ส่วนติดต่อผู้ใช้</h3><p>HTML · CSS · JavaScript<br>React · TypeScript · Vite · Tailwind CSS</p></article><article><span>BACKEND & DATA</span><h3>ระบบและข้อมูล</h3><p>Python · FastAPI<br>Supabase · PostgreSQL · Gemini API</p></article><article><span>VERSION CONTROL & CI/CD</span><h3>พัฒนาและเผยแพร่</h3><p>Git · GitHub<br>GitHub Actions · GitHub Pages</p></article></div>
+    </section>
+    <section class="contact-section" id="contact" aria-labelledby="contact-title"><div class="wrap contact-grid"><div><p class="eyebrow">LET’S CONNECT</p><h2 id="contact-title">Contact<span>.</span></h2><p>ติดตามโค้ดและการพัฒนาโปรเจกต์ได้บน GitHub</p><a class="button primary" href="https://github.com/67160345-svg">GitHub · 67160345-svg <span aria-hidden="true">↗</span></a></div><div class="hello-card"><span aria-hidden="true">✳</span><h3>ยินดีต้อนรับสู่ NutriThai</h3><p id="status" role="status" aria-live="polite">ลองกดปุ่มทักทายด้านล่างได้เลย</p><button class="button" id="helloBtn" type="button">Say Hello <span aria-hidden="true">↗</span></button><noscript>เปิด JavaScript เพื่อใช้ปุ่มทักทายและเปลี่ยนธีม</noscript></div></div></section>
+  </main>
+  <footer class="wrap"><a class="brand" href="#">✳ NutriThai.</a><p>นพรัตน์ โพธิ์สาวัง · 67160345</p><a href="https://github.com/67160345-svg/NutriThai_WebApp/actions">ดู GitHub Actions ↗</a></footer>
+</body>
+</html>
