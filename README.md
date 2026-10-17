@@ -1,5 +1,11 @@
 # NutriThai Calorie App
 
+## CI และ CD
+
+[![NutriThai CI/CD](https://github.com/67160345-svg/NutriThai_WebApp/actions/workflows/deploy.yml/badge.svg)](https://github.com/67160345-svg/NutriThai_WebApp/actions/workflows/deploy.yml)
+
+ตรวจ frontend, backend, database migrations/RLS และหน้าเว็บทุกครั้งที่ push เข้า `main` หรือเปิด Pull Request และ deploy GitHub Pages เฉพาะเมื่อการตรวจทั้งหมดผ่าน อ่าน [รายละเอียดและคำสั่งตรวจในเครื่อง](docs/ci-cd.md)
+
 รายการอาหาร ผลค้นหา และคำแนะนำแสดง [ชื่อภาษาไทยก่อน](docs/thai-first-foods-2026-10-17.md) แล้ว โดยยังเลือกอาหารชื่ออังกฤษได้ครบ
 
 **17 ตุลาคม 2026:** แยกชื่ออาหารและหน่วยตวงในฐานจริงครบ 4,580 รายการ เพิ่ม `source_portion` และ `original_name` พร้อมปัดตัวเลขผลลัพธ์บนเว็บเป็นจำนวนเต็ม โดยคงความละเอียดในการคำนวณ ดู [รายละเอียดและผลตรวจ](docs/catalog-names-and-display-2026-10-17.md)
@@ -303,8 +309,8 @@ API key ต้องอยู่ใน backend environment เท่านั้
 - ข้อมูลอาหารเดิมที่ไม่มีหน่วยยังแสดง “หน่วยเดิม (ไม่ระบุขนาด)” ต้องตรวจแหล่งอ้างอิงก่อน backfill metadata; ไม่เปลี่ยนค่าโภชนาการเก่าอัตโนมัติ
 - ยังไม่มี cloud hosting/production deployment ที่ผูกกับ project/โดเมนจริง
 - Gemini scan จำกัดเริ่มต้น 10 ครั้งต่อผู้ใช้ต่อชั่วโมง (`GEMINI_RATE_LIMIT_REQUESTS`, `GEMINI_RATE_LIMIT_WINDOW_SECONDS`) และ Nginx จำกัด API ที่ 120 request/นาทีต่อ IP พร้อม burst 30; limiter ใน backend เก็บใน memory จึงไม่แชร์ข้าม worker/replica และรีเซ็ตเมื่อ restart ควรใช้ distributed/API-gateway rate limit ก่อนเปิด production
-- Frontend coverage ครอบคลุม source TypeScript/TSX ทั้งหมด โดยตั้ง threshold แยกอย่างน้อย 70% สำหรับ statements, branches, functions และ lines
-- ผลตรวจในเครื่องล่าสุด: Frontend 73 tests, Backend 62 tests และ migration tests สำหรับ fresh install/upgrade ผ่าน; TypeScript และ production build ผ่าน การตรวจครั้งนี้ไม่ได้รัน coverage และยังไม่ใช่การตรวจรับ flow สองบัญชีบน Supabase จริงหรือภาพ UI desktop/mobile
+- Frontend coverage ตั้ง threshold ของ statements และ lines อย่างน้อย 80% และ branches/functions อย่างน้อย 70%; backend บังคับ coverage ของ `main.py` อย่างน้อย 80%
+- ผลตรวจ CI ล่าสุด: Frontend 89 tests, Backend 64 tests และ migration/catalog tests สำหรับ fresh install/upgrade ผ่าน รวม TypeScript และ production build บน Node 22/24 และ Python 3.12/3.14 การทดสอบ RLS ใช้ PGlite และ tests ของ API ใช้ mock จึงยังไม่ใช่การตรวจรับสองบัญชีบน Supabase production
 - ค่าโภชนาการจาก Gemini เป็นค่าประมาณ ผู้ใช้ควรตรวจสอบ portion size
 
 ## Validation
@@ -327,6 +333,6 @@ pip install -r requirements-dev.txt
 python -m pytest --cov=main --cov-fail-under=80
 ```
 
-ใช้ `python -m pytest --cov=main --cov-fail-under=80` เพื่อตรวจ backend coverage; frontend `npm run test:coverage` รันทดสอบ source ทั้งหมดและบังคับ coverage อย่างน้อย 70% ในทุก metric
+ใช้ `python -m pytest --cov=main --cov-fail-under=80` เพื่อตรวจ backend coverage; frontend `npm run test:coverage` บังคับ statements/lines อย่างน้อย 80% และ branches/functions อย่างน้อย 70%
 
 Docker configuration: `docker compose config`

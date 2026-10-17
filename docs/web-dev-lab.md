@@ -14,11 +14,11 @@
 
 ## Workflow ทำงานอย่างไร
 
-Workflow `.github/workflows/deploy.yml` เริ่มทุกครั้งที่มี push ไปยัง branch `main` หรือกด Run workflow ด้วยตนเอง Job `deploy` ใช้เครื่อง Ubuntu ดาวน์โหลดโค้ดด้วย checkout ตรวจว่าไฟล์หน้าแรก CSS JavaScript และภาพมีอยู่ ตรวจ syntax ของ JavaScript แล้วตั้งค่า Pages อัปโหลดเฉพาะโฟลเดอร์ `pages` เป็น artifact และเผยแพร่ artifact นั้นไปยัง GitHub Pages
+Workflow `.github/workflows/deploy.yml` ชื่อ NutriThai CI/CD เริ่มทุกครั้งที่มี push ไปยัง branch `main`, เปิดหรืออัปเดต Pull Request เข้า `main` หรือกด Run workflow ด้วยตนเอง ตรวจ frontend, backend, ฐานข้อมูล และไฟล์เว็บไซต์ก่อน แล้วจึงเผยแพร่เฉพาะโฟลเดอร์ `pages` ไปยัง GitHub Pages หากตรวจไม่ผ่านจะไม่ deploy ส่วน Pull Request ตรวจอย่างเดียว อ่าน [รายละเอียด CI/CD](ci-cd.md)
 
 `contents: read` ใช้อ่านโค้ด, `pages: write` ใช้เผยแพร่เว็บไซต์ และ `id-token: write` ใช้ยืนยันตัวตนของการ deploy ผ่าน OIDC ส่วน concurrency ป้องกัน deployment ซ้อนกัน โดยยกเลิกงานเดิมเมื่อมีงานใหม่
 
-ขั้นตอน `test -f pages/index.html` เป็น Challenge ตรวจไฟล์ก่อน deploy หากไฟล์หาย Job จะหยุดก่อนอัปโหลด ไม่เผยแพร่ root ของ repository จึงไม่รวม backend, ฐานข้อมูล หรือโฟลเดอร์ secrets ในเว็บไซต์
+สคริปต์ `.github/scripts/check_pages.py` ตรวจไฟล์ `pages/index.html` รวมถึง anchor และไฟล์ประกอบก่อน deploy หากไฟล์หาย CI จะไม่ผ่านและหยุดก่อนอัปโหลด ไม่เผยแพร่ root ของ repository จึงไม่รวม backend, ฐานข้อมูล หรือโฟลเดอร์ secrets ในเว็บไซต์
 
 ตั้งค่า Repository → Settings → Pages → Source เป็น **GitHub Actions** หนึ่งครั้ง แล้วการ push ครั้งถัดไปจะเผยแพร่อัตโนมัติ
 
