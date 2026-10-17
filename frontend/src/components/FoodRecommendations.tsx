@@ -1,3 +1,4 @@
+import { displayInteger } from "../lib/display";
 import { useMemo, useState } from "react";
 import type { Food, FoodLog, HealthProfile, MealType, FoodPreferences, FoodPreference, MealItem } from "../types";
 import { recommendFoods, foodKey, buildMealPlan, type RecommendationMode, type NutritionFocus } from "../lib/recommendations";
@@ -75,7 +76,7 @@ export default function FoodRecommendations(props: Props) {
         <p className="recommendation-portion">{consumedLabel(item.food, item.servings)}</p>
         <button type="button" onClick={() => onSelect(item.food, item.servings)} className="recommendation-select" aria-label={`เลือก ${item.food.nameTh || item.food.name}`}>เลือกอาหารนี้ <Icon name="arrow" /></button>
         <details className="recommendation-food-details"><summary>โภชนาการและเหตุผลที่แนะนำ</summary><div>
-          <p>โปรตีน {(item.food.protein * item.servings).toFixed(1)} · คาร์บ {(item.food.carbs * item.servings).toFixed(1)} · ไขมัน {(item.food.fat * item.servings).toFixed(1)} กรัม</p>
+          <p>โปรตีน {displayInteger(item.food.protein * item.servings)} · คาร์บ {displayInteger(item.food.carbs * item.servings)} · ไขมัน {displayInteger(item.food.fat * item.servings)} กรัม</p>
           <p>{item.reasons.join(" · ")}</p>
           <FoodPreferenceButtons food={item.food} value={preferences?.[foodKey(item.food)!]} onChange={onPreference} />
         </div></details>
@@ -86,7 +87,7 @@ export default function FoodRecommendations(props: Props) {
     {mode === "meal" && <div className="recommendation-meal rounded-xl border border-[#c5d8c7] bg-white p-3">
       <h4 className="font-semibold">ไอเดียชุดมื้ออาหาร</h4>
       {plan.length ? <><ul className="my-2 space-y-1 text-sm">{plan.map(item => <li key={foodKey(item.food)}>{item.food.nameTh || item.food.name} · {consumedLabel(item.food, item.servings)}</li>)}</ul>
-        <p className="text-sm">รวม {Math.round(planTotals.calories)} kcal · โปรตีน {planTotals.protein.toFixed(1)} · คาร์บ {planTotals.carbs.toFixed(1)} · ไขมัน {planTotals.fat.toFixed(1)} กรัม</p>
+        <p className="text-sm">รวม {Math.round(planTotals.calories)} kcal · โปรตีน {displayInteger(planTotals.protein)} · คาร์บ {displayInteger(planTotals.carbs)} · ไขมัน {displayInteger(planTotals.fat)} กรัม</p>
         <p className="mt-1 text-xs text-[#596c5c]">ปรับปริมาณก่อนบันทึกได้ ชุดนี้เป็นไอเดียจับคู่จากข้อมูลที่มี</p>
         {onPlan && <button type="button" onClick={() => onPlan(plan)} className="mt-2 rounded-xl bg-[#2d6e3e] px-3 py-2 text-sm text-white">เลือกชุดนี้และปรับปริมาณ</button>}</>
         : <p className="mt-1 text-xs text-[#596c5c]">ยังไม่มีคู่ที่เหมาะกับกรอบมื้อและหมวดที่เลือก ลองเปลี่ยนมื้อ หมวดอาหาร หรือแนวทางแนะนำ</p>}

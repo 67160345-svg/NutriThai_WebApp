@@ -4,6 +4,7 @@ export interface ServingBasis {
   servingUnit?: FoodUnit;
   servingLabel?: string;
   portionGrams?: number | null;
+  sourcePortion?: string;
 }
 export interface Food extends ServingBasis {
   customId?: string;

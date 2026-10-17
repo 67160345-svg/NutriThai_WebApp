@@ -1,5 +1,7 @@
 import type { Food, FoodLog, HealthProfile, MealType } from "../types";
 import { apiJson } from "./api";
+import { splitFoodName } from "./display";
+import { thaiFirst } from "./foodOrdering";
 
 type ProfileRow = {
   username: string;
@@ -20,6 +22,7 @@ type ProfileRow = {
 type FoodRow = {
   id: number;
   name: string;
+  source_portion?: string | null;
   serving_size?: number;
   serving_unit?: Food["servingUnit"];
   serving_label?: string;
@@ -79,8 +82,9 @@ export function mapProfile(row: ProfileRow): HealthProfile {
 function mapLog(row: FoodLogRow): FoodLog {
   const food: Food = {
     id: row.food_id ?? 0,
-    name: row.food_name,
-    nameTh: row.food_name_th ?? row.food_name,
+    name: splitFoodName(row.food_name).name,
+    nameTh: splitFoodName(row.food_name_th ?? row.food_name).name,
+    sourcePortion: splitFoodName(row.food_name).sourcePortion,
     category: row.category ?? "food",
     source: row.source,
     customId: row.custom_food_id ?? undefined,
@@ -213,10 +217,11 @@ export async function readFoods(options: ReadFoodsOptions = {}): Promise<Food[]>
   if (options.limit !== undefined) params.set("limit", String(options.limit));
   const query = params.size ? `?${params.toString()}` : "";
   const rows = await apiJson<FoodRow[]>(`/api/v1/foods${query}`);
-  return rows.map((row) => ({
+  return thaiFirst(rows.map((row): Food => ({
     id: row.id,
-    name: row.english_name ?? row.name,
-    nameTh: row.name_th ?? row.name,
+    name: splitFoodName(row.english_name ?? row.name).name,
+    nameTh: splitFoodName(row.name_th ?? row.name).name,
+    sourcePortion: row.source_portion ?? splitFoodName(row.name).sourcePortion,
     category: row.category,
     source: "catalog",
     ...mapBasis(row),
@@ -226,7 +231,7 @@ export async function readFoods(options: ReadFoodsOptions = {}): Promise<Food[]>
     fat: Number(row.fat),
     sugar: Number(row.sugar),
     fiber: Number(row.fiber),
-  }));
+  })), food => food);
 }
 
 function mapBasis(row: { serving_size?: number; serving_unit?: Food["servingUnit"]; serving_label?: string; portion_grams?: number | null }) {

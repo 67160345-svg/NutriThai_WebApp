@@ -1,3 +1,4 @@
+import { displayInteger } from "../lib/display";
 import { useEffect, useState } from "react";
 import type { Food, FoodLog, FoodUnit, MealType } from "../types";
 import { localDateKey, readFoods } from "../lib/foodLogs";
@@ -42,7 +43,7 @@ export default function FoodLogEditor({ log, customFoods, onSave, onCancel }: Pr
         <label className="text-sm">วันที่รับประทาน<input type="date" required max={localDateKey(new Date())} value={date} onChange={e => setDate(e.target.value)} className="mt-1 block w-full rounded-lg border p-2" /></label>
         <label className="text-sm">มื้ออาหาร<select value={meal} onChange={e => setMeal(e.target.value as MealType)} className="mt-1 block w-full rounded-lg border p-2"><option value="breakfast">เช้า</option><option value="lunch">กลางวัน</option><option value="dinner">เย็น</option><option value="snack">ของว่าง</option></select></label>
       </div>
-      <p className="font-semibold">{food.nameTh} <span className="text-xs font-normal text-[#596c5c]">{food.calories} kcal / {basisLabel(food)}</span></p>
+      <p className="font-semibold">{food.nameTh} <span className="text-xs font-normal text-[#596c5c]">{displayInteger(food.calories)} kcal / {basisLabel(food)}</span></p>
       <QuantityInput id="edit-log-quantity" food={food} quantity={quantity} unit={unit} onChange={(q, u) => {setQuantity(q);setUnit(u);}} />
       <details><summary className="cursor-pointer text-sm font-semibold text-[#2d6e3e]">เปลี่ยนอาหาร / แก้ชื่อและค่าโภชนาการ</summary>
         <div className="mt-3 space-y-3">
@@ -50,7 +51,7 @@ export default function FoodLogEditor({ log, customFoods, onSave, onCancel }: Pr
           {searching && <p role="status" className="text-sm">กำลังค้นหา...</p>}
           {searchError && <p role="alert" className="text-sm text-rose-700">{searchError}</p>}
           {query.trim() && !searching && !searchError && !results.length && <p className="text-sm">ไม่พบอาหาร</p>}
-          {results.map(item => <button type="button" key={item.id} onClick={() => selectFood(item)} className="block w-full rounded-lg border p-2 text-left text-sm">{item.nameTh} · {item.calories} kcal / {basisLabel(item)}</button>)}
+          {results.map(item => <button type="button" key={item.id} onClick={() => selectFood(item)} className="block w-full rounded-lg border p-2 text-left text-sm">{item.nameTh} · {displayInteger(item.calories)} kcal / {basisLabel(item)}</button>)}
           {customFoods.length > 0 && <label className="block text-sm">เลือกอาหารส่วนตัว<select value="" onChange={e => {const next = customFoods.find(item => item.customId === e.target.value); if (next) selectFood(next);}} className="mt-1 block w-full rounded-lg border p-2"><option value="">เลือกอาหารของฉัน</option>{customFoods.map(item => <option key={item.customId} value={item.customId}>{item.nameTh}</option>)}</select></label>}
           <button type="button" onClick={() => setManual(value => !value)} className="text-sm font-semibold text-[#2d6e3e]">กรอกหรือแก้ข้อมูลเฉพาะรายการนี้</button>
           {manual && <CustomFoodForm initialFood={food} submitLabel="ใช้ข้อมูลนี้กับรายการ" onSave={async next => selectFood(next)} />}

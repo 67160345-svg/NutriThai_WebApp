@@ -1,7 +1,8 @@
 import type { Food, FoodUnit } from "../types";
+import { displayInteger, displayMeasurements } from "./display";
 export const unitNames: Record<FoodUnit, string> = { portion: "หน่วยบริโภค", g: "กรัม", ml: "มิลลิลิตร" };
 export function basisLabel(food: Food): string {
-  return `${food.servingSize ?? 1} ${food.servingUnit === "g" ? "กรัม" : food.servingUnit === "ml" ? "มิลลิลิตร" : food.servingLabel || "หน่วยเดิม (ไม่ระบุขนาด)"}`;
+  return `${displayInteger(food.servingSize ?? 1)} ${food.servingUnit === "g" ? "กรัม" : food.servingUnit === "ml" ? "มิลลิลิตร" : displayMeasurements(food.servingLabel || "หน่วยเดิม (ไม่ระบุขนาด)")}`;
 }
 export function availableUnits(food: Food): FoodUnit[] {
   const unit = food.servingUnit ?? "portion";
@@ -17,7 +18,7 @@ export function toServings(food: Food, quantity: number, unit: FoodUnit): number
 }
 export function validServings(value: number): boolean { return Number.isFinite(value) && value >= 0.001 && value <= 100; }
 export function consumedLabel(food: Food, servings: number): string {
-  const count = Number(((food.servingSize ?? 1) * servings).toFixed(3));
+  const count = displayInteger((food.servingSize ?? 1) * servings);
   const unit = food.servingUnit ?? "portion";
-  return `${count} ${unit === "portion" ? food.servingLabel || "หน่วยเดิม (ไม่ระบุขนาด)" : unitNames[unit]}`;
+  return `${count} ${unit === "portion" ? displayMeasurements(food.servingLabel || "หน่วยเดิม (ไม่ระบุขนาด)") : unitNames[unit]}`;
 }

@@ -138,3 +138,4 @@ def test_browse_honors_category_and_explicit_limit(monkeypatch):
     monkeypatch.setattr(main,'_supabase_request',lambda *a,**k: calls.append(k['query']) or [])
     assert client.get('/api/v1/foods?category=drink&limit=4').status_code==200
     assert calls[0]['category']=='eq.drink' and calls[0]['limit']=='4'
+    assert calls[0]['order']=='has_thai_name.desc,name_th.asc.nullslast,name.asc,id.asc'

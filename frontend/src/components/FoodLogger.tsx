@@ -1,3 +1,4 @@
+import { displayInteger } from "../lib/display";
 import { useState, useEffect } from "react";
 import { Food, FoodLog, MealType, FoodUnit, HealthProfile, FoodPreferences, FoodPreference, MealItem } from "../types";
 import FoodRecommendations from "./FoodRecommendations";
@@ -45,9 +46,9 @@ interface ScanResult {
 function MacroPills({ food }: { food: Food }) {
   return (
     <div className="flex gap-1.5 mt-1 flex-wrap">
-      <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-400">{food.protein}g โปรตีน</span>
-      <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400">{food.carbs}g คาร์บ</span>
-      <span className="text-[10px] px-1.5 py-0.5 rounded bg-rose-500/15 text-rose-400">{food.fat}g ไขมัน</span>
+      <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-400">{displayInteger(food.protein)}g โปรตีน</span>
+      <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400">{displayInteger(food.carbs)}g คาร์บ</span>
+      <span className="text-[10px] px-1.5 py-0.5 rounded bg-rose-500/15 text-rose-400">{displayInteger(food.fat)}g ไขมัน</span>
     </div>
   );
 }
@@ -331,7 +332,7 @@ export default function FoodLogger({ onAddLog, isAuthenticated, foods, initialTa
                     </div>
                   </div>
                   <div className="shrink-0 text-right">
-                    <div className="text-sm font-extrabold text-[#2d6e3e]">{food.calories}</div>
+                    <div className="text-sm font-extrabold text-[#2d6e3e]">{displayInteger(food.calories)}</div>
                     <div className="text-[10px] text-[#718078]">kcal / {basisLabel(food)}</div>
                   </div>
                   <span aria-hidden="true" className="text-lg text-[#718078]">›</span>
@@ -371,7 +372,7 @@ export default function FoodLogger({ onAddLog, isAuthenticated, foods, initialTa
                     </div>
                   </div>
                   <div className="shrink-0 text-right">
-                    <div className="text-sm font-extrabold text-[#2d6e3e]">{food.calories}</div>
+                    <div className="text-sm font-extrabold text-[#2d6e3e]">{displayInteger(food.calories)}</div>
                     <div className="text-[10px] text-[#718078]">kcal / {basisLabel(food)}</div>
                   </div>
                   <span aria-hidden="true" className="text-lg text-[#718078]">›</span>
@@ -393,7 +394,7 @@ export default function FoodLogger({ onAddLog, isAuthenticated, foods, initialTa
         {customFoods.length > 0 && <section aria-label="รายการอาหารส่วนตัว" className="space-y-2">
           <h3 className="font-semibold">อาหารส่วนตัวที่บันทึกไว้</h3>
           {customFoods.map((food, i) => <button key={food.customId ?? i} type="button" onClick={() => handleSelect(food)} className="flex w-full justify-between gap-3 rounded-xl border bg-white p-3 text-left">
-            <span>{food.nameTh}</span><span className="text-xs text-[#596c5c]">{food.calories} kcal / {basisLabel(food)}</span>
+            <span>{food.nameTh}</span><span className="text-xs text-[#596c5c]">{displayInteger(food.calories)} kcal / {basisLabel(food)}</span>
           </button>)}
         </section>}
       </div>}
@@ -446,7 +447,7 @@ export default function FoodLogger({ onAddLog, isAuthenticated, foods, initialTa
                 <div className="text-4xl">✅</div>
                 <div className="text-sm font-semibold text-[#1a2820]">ตรวจพบอาหาร!</div>
                 <div className="inline-flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-3 py-1">
-                  <span className="text-xs text-emerald-400">ความมั่นใจ {scanResult.confidence}%</span>
+                  <span className="text-xs text-emerald-400">ความมั่นใจ {displayInteger(scanResult.confidence)}%</span>
                 </div>
               </div>
             ) : (
@@ -473,7 +474,7 @@ export default function FoodLogger({ onAddLog, isAuthenticated, foods, initialTa
                 </div>
                 <div className="text-right">
                   <div className="text-lg font-bold text-emerald-400" style={{ fontFamily: "Outfit, sans-serif" }}>
-                    {scanResult.food.calories}
+                    {displayInteger(scanResult.food.calories)}
                   </div>
                   <div className="text-[10px] text-slate-600">kcal</div>
                 </div>
@@ -591,7 +592,7 @@ export default function FoodLogger({ onAddLog, isAuthenticated, foods, initialTa
               <div className="mt-1 text-xs text-[#596c5c]">ต่อ {basisLabel(selectedFood)}</div>
             </div>
             <div className="shrink-0 text-right">
-              <div className="text-xl font-extrabold text-[#2d6e3e]">{selectedFood.calories}</div>
+              <div className="text-xl font-extrabold text-[#2d6e3e]">{displayInteger(selectedFood.calories)}</div>
               <div className="text-xs text-[#718078]">kcal</div>
             </div>
           </div>
@@ -606,7 +607,7 @@ export default function FoodLogger({ onAddLog, isAuthenticated, foods, initialTa
                 { label: "ไขมัน", value: selectedFood.fat, unit: "g", color: "text-[#66845d]" },
               ].map((item) => (
                 <div key={item.label} className="min-w-0">
-                  <div className={`text-base font-extrabold sm:text-lg ${item.color}`}>{item.value}</div>
+                  <div className={`text-base font-extrabold sm:text-lg ${item.color}`}>{displayInteger(item.value)}</div>
                   <div className="text-[10px] text-[#718078] sm:text-xs">{item.unit}</div>
                   <div className="text-[10px] text-[#596c5c] sm:text-xs">{item.label}</div>
                 </div>

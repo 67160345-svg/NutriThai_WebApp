@@ -1,0 +1,15 @@
+node_modules/
+dist/
+coverage/
+__pycache__/
+.pytest_cache/
+.coverage
+.venv/
+.env
+.env.*
+!.env.example
+secrets/
+.local-run/
+/NutriThai-*.zip
+*.pyc
+*.pyo

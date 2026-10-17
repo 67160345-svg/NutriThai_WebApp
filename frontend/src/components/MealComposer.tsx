@@ -1,3 +1,4 @@
+import { displayInteger } from "../lib/display";
 import { useState } from "react";
 import type { FoodLog, MealItem, MealType } from "../types";
 import { localDateKey } from "../lib/foodLogs";
@@ -31,7 +32,7 @@ export default function MealComposer({ items, onChange, onSave, onDone, initialD
         <button type="button" aria-label={`นำ ${item.food.nameTh} ออกจากชุด`} onClick={() => onChange(items.filter((_, i) => i !== index))}>นำออก</button>
       </div>)}
     </fieldset>
-    <p className="font-semibold">รวมชุด {Number.isFinite(total) ? Math.round(total) : 0} kcal · โปรตีน {items.reduce((sum, item) => sum + item.food.protein * item.servings, 0).toFixed(1)} g</p>
+    <p className="font-semibold">รวมชุด {Number.isFinite(total) ? Math.round(total) : 0} kcal · โปรตีน {displayInteger(items.reduce((sum, item) => sum + item.food.protein * item.servings, 0))} g</p>
     {error && <p role="alert" className="text-sm text-rose-700">{error}</p>}
     {submitted && !busy && <p className="text-sm">ลองบันทึกชุดเดิมอีกครั้งเพื่อยืนยันผล ระบบใช้รหัสเดิมป้องกันการเพิ่มซ้ำ</p>}
     <button type="button" disabled={busy || !valid} className="w-full rounded-xl bg-[#2d6e3e] p-3 font-semibold text-white disabled:opacity-50" onClick={async () => {

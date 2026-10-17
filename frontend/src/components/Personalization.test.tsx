@@ -71,7 +71,7 @@ it("filters weight history, edits a date and reports deletion failures", async (
   const save = vi.fn().mockResolvedValue(undefined), remove = vi.fn().mockRejectedValueOnce(new Error("delete failed")).mockResolvedValueOnce(undefined);
   render(<WeightTracker weights={[{ measuredOn: "2026-01-01", weightKg: 70 }, { measuredOn: "2026-01-02", weightKg: 69 }, { measuredOn: "2025-12-01", weightKg: 80 }]} start="2026-01-01" end="2026-01-31" onSave={save} onDelete={remove} />);
   expect(screen.queryByText(/80 กก/)).toBeNull();
-  expect(screen.getByText(/เปลี่ยนแปลง -1.00/)).toBeTruthy();
+  expect(screen.getByText(/เปลี่ยนแปลง -1 กก/)).toBeTruthy();
   fireEvent.click(screen.getByText("แก้ไข 2026-01-02"));
   fireEvent.change(screen.getByLabelText("น้ำหนัก (กก.)"), { target: { value: "69.5" } });
   fireEvent.click(screen.getByText("บันทึกน้ำหนัก"));

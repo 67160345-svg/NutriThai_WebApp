@@ -2,6 +2,7 @@ import type { Food, FoodLog, HealthProfile, MealType, NutritionTotals, FoodPrefe
 import { localDateKey } from "./foodLogs";
 import { getTotals } from "./health";
 import { validServings } from "./portions";
+import { hasThaiName } from "./foodOrdering";
 
 export type RecommendationMode = "familiar" | "balanced" | "goal" | "meal";
 export type NutritionFocus = "balanced" | "protein" | "carbs" | "fat";
@@ -35,7 +36,10 @@ function diversify(items: FoodRecommendation[], limit: number): FoodRecommendati
   while (pool.length && selected.length < limit) {
     let best = 0;
     const adjusted = (item: FoodRecommendation) => item.score - (families.get(foodFamily(item.food)) ?? 0) * 0.12;
-    for (let i = 1; i < pool.length; i++) if (adjusted(pool[i]) > adjusted(pool[best])) best = i;
+    for (let i = 1; i < pool.length; i++) {
+      const language = Number(hasThaiName(pool[i].food)) - Number(hasThaiName(pool[best].food));
+      if (language > 0 || (language === 0 && adjusted(pool[i]) > adjusted(pool[best]))) best = i;
+    }
     const [item] = pool.splice(best, 1);
     selected.push(item);
     const family = foodFamily(item.food);
@@ -167,7 +171,7 @@ export function recommendFoods({ foods, customFoods, logs, profile, date, meal, 
     const score = weight * Math.max(preference, preferences[key] === "like" ? 1 : 0) + (1 - weight) * nutrition - repeatPenalty;
     recommendations.push({ food, servings, score, reasons, knownBasis });
   }
-  recommendations.sort((a, b) => b.score - a.score || (foodKey(a.food) ?? "").localeCompare(foodKey(b.food) ?? ""));
+  recommendations.sort((a, b) => Number(hasThaiName(b.food)) - Number(hasThaiName(a.food)) || b.score - a.score || (foodKey(a.food) ?? "").localeCompare(foodKey(b.food) ?? ""));
   return { recommendations: mode === "familiar" ? recommendations.slice(0, 6) : diversify(recommendations, 6),
     mealCandidates: diversify(recommendations.filter(item => item.knownBasis), 24),
     remaining, budget, usableTargets, hasHistory: habits.size > 0 };

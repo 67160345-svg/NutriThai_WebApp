@@ -1,3 +1,4 @@
+import { displayInteger } from "../lib/display";
 import { basisLabel } from "../lib/portions";
 import { useState } from "react";
 import { Food, FoodLog, HealthProfile, WeightLog, FoodPreferences } from "../types";
@@ -153,9 +154,9 @@ export default function AdviceCard({ healthProfile, logs, foods, weights = [], o
               <div key={food.id} className="flex items-center justify-between gap-3 rounded-[16px] border border-[#edf4ee] bg-[#fbfcf9] p-3">
                 <div className="min-w-0">
                   <div className="truncate text-sm font-semibold text-[#1a2820]">{food.nameTh}</div>
-                  <div className="text-xs text-[#718078]">{food.calories} kcal · {food.protein} g โปรตีน</div>
+                  <div className="text-xs text-[#718078]">{displayInteger(food.calories)} kcal · {displayInteger(food.protein)} g โปรตีน</div>
                 </div>
-                <span className="shrink-0 rounded-full bg-[#edf4ee] px-2.5 py-1 text-xs font-semibold text-[#2d6e3e]">−{sourceFood.calories - food.calories} kcal</span>
+                <span className="shrink-0 rounded-full bg-[#edf4ee] px-2.5 py-1 text-xs font-semibold text-[#2d6e3e]">−{displayInteger(sourceFood.calories - food.calories)} kcal</span>
               </div>
             ))}
           </div>

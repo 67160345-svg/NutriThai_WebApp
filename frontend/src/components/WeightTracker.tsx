@@ -1,3 +1,4 @@
+import { displayInteger } from "../lib/display";
 import { useState } from "react";
 import type { WeightLog } from "../types";
 import { localDateKey } from "../lib/foodLogs";
@@ -33,10 +34,10 @@ export default function WeightTracker({ weights, start, end, onSave, onDelete }:
     </form>}
     {error && <p role="alert" className="text-sm text-rose-700">{error}</p>}{message && <p role="status" className="text-sm text-[#2d6e3e]">{message}</p>}
     {entries.length ? <>
-      <p className="text-sm">ล่าสุดในช่วงนี้ {entries.at(-1)!.weightKg} กก.{entries.length > 1 && ` · เปลี่ยนแปลง ${(entries.at(-1)!.weightKg - entries[0].weightKg).toFixed(2)} กก.`}</p>
-      <svg viewBox="0 0 600 190" role="img" aria-label="กราฟน้ำหนักตามวันที่ชั่ง" className="w-full"><text x="0" y="15" fontSize="12">{max.toFixed(1)} กก.</text><text x="0" y="185" fontSize="12">{min.toFixed(1)} กก.</text><polyline points={points.map(p => `${p.x},${p.y}`).join(" ")} fill="none" stroke="#2d6e3e" strokeWidth="3" />{points.map(p => <circle key={p.measuredOn} cx={p.x} cy={p.y} r="4" fill="#2d6e3e"><title>{p.measuredOn}: {p.weightKg} กก.</title></circle>)}</svg>
+      <p className="text-sm">ล่าสุดในช่วงนี้ {displayInteger(entries.at(-1)!.weightKg)} กก.{entries.length > 1 && ` · เปลี่ยนแปลง ${displayInteger(entries.at(-1)!.weightKg - entries[0].weightKg)} กก.`}</p>
+      <svg viewBox="0 0 600 190" role="img" aria-label="กราฟน้ำหนักตามวันที่ชั่ง" className="w-full"><text x="0" y="15" fontSize="12">{displayInteger(max)} กก.</text><text x="0" y="185" fontSize="12">{displayInteger(min)} กก.</text><polyline points={points.map(p => `${p.x},${p.y}`).join(" ")} fill="none" stroke="#2d6e3e" strokeWidth="3" />{points.map(p => <circle key={p.measuredOn} cx={p.x} cy={p.y} r="4" fill="#2d6e3e"><title>{p.measuredOn}: {displayInteger(p.weightKg)} กก.</title></circle>)}</svg>
       <p className="flex justify-between text-xs"><span>{start}</span><span>{end}</span></p>
-      <details><summary className="cursor-pointer text-sm">ดูและแก้ไขรายการน้ำหนัก</summary><ul className="mt-2 space-y-2">{entries.map(row => <li key={row.measuredOn} className="flex flex-wrap items-center gap-3 text-sm"><span>{row.measuredOn} · {row.weightKg} กก.</span>
+      <details><summary className="cursor-pointer text-sm">ดูและแก้ไขรายการน้ำหนัก</summary><ul className="mt-2 space-y-2">{entries.map(row => <li key={row.measuredOn} className="flex flex-wrap items-center gap-3 text-sm"><span>{row.measuredOn} · {displayInteger(row.weightKg)} กก.</span>
         {onSave && <button disabled={busy} type="button" onClick={() => { setDate(row.measuredOn); setValue(String(row.weightKg)); }}>แก้ไข {row.measuredOn}</button>}
         {onDelete && <button disabled={busy} type="button" onClick={async () => { setBusy(true); setError(""); setMessage(""); try { await onDelete(row.measuredOn); setMessage("ลบน้ำหนักแล้ว"); } catch (e) { setError(e instanceof Error ? e.message : "ลบไม่สำเร็จ"); } finally { setBusy(false); } }}>ลบ {row.measuredOn}</button>}
       </li>)}</ul></details>

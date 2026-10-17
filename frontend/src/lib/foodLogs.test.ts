@@ -70,6 +70,31 @@ const savedLogRow = {
 beforeEach(() => apiJson.mockReset());
 
 describe("API-backed profile and food-log data access", () => {
+  it("shows actual Thai names before untranslated English fallback names", async () => {
+    const base = { category: "food", calories: 130, protein: 3, carbs: 28, fat: 1, sugar: 0, fiber: 1 };
+    apiJson.mockResolvedValueOnce([
+      { ...base, id: 1, name: "Apple", english_name: "Apple", name_th: "Apple" },
+      { ...base, id: 2, name: "Rice", english_name: "Rice", name_th: "ข้าว" },
+      { ...base, id: 3, name: "Banana", english_name: "Banana", name_th: null },
+    ]);
+    expect((await readFoods()).map(food => food.id)).toEqual([2, 1, 3]);
+  });
+  it("maps separated catalog names while preserving precise nutrient values", async () => {
+    apiJson.mockResolvedValueOnce([{ id: 1, name: "Milk (2%)", english_name: "Milk (2%)", name_th: null,
+      source_portion: "1 cup, 244 g", category: "drink", serving_size: 1, serving_unit: "portion",
+      serving_label: "ถ้วยตวง (244 กรัม)", portion_grams: 244,
+      calories: 148.8, protein: 8.2, carbs: 11.7, fat: 7.9, sugar: 11.7, fiber: 0 }]);
+    const [food] = await readFoods();
+    expect(food).toMatchObject({ name: "Milk (2%)", nameTh: "Milk (2%)", sourcePortion: "1 cup, 244 g", calories: 148.8, protein: 8.2 });
+    expect(food.calories / 2).toBe(74.4);
+  });
+
+  it("cleans legacy snapshot titles without changing their servings or nutrition", async () => {
+    apiJson.mockResolvedValueOnce([{ ...savedLogRow, food_name: "Rice (1 bowl, 200 g)", food_name_th: null }]);
+    const [log] = await readFoodLogs();
+    expect(log.food).toMatchObject({ name: "Rice", nameTh: "Rice", sourcePortion: "1 bowl, 200 g", calories: 130 });
+    expect(log.servings).toBe(1.5);
+  });
   it("uses health targets calculated by the backend", () => {
     const mapped = mapProfile({
       username: "test-user",

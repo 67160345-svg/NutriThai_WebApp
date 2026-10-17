@@ -641,7 +641,7 @@ def get_foods(
             raise
     # No-search callers still receive the whole catalog, unless they explicitly
     # request a limit. Category applies to both search and browse.
-    query = {"select": "*", "order": "name,id"}
+    query = {"select": "*", "order": "has_thai_name.desc,name_th.asc.nullslast,name.asc,id.asc"}
     if category:
         query["category"] = f"eq.{category}"
     if limit is not None:

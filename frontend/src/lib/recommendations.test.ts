@@ -10,6 +10,18 @@ const options = { foods: [favorite, matching], customFoods: [] as Food[], logs: 
 const history = Array.from({ length: 7 }, (_, i) => log(favorite, `2026-10-0${i + 1}`));
 
 describe("personal food ranking", () => {
+  it("prioritizes eligible Thai names before truncation while keeping English fallbacks", () => {
+    const english = Array.from({length: 8}, (_, index) => ({ ...favorite, id: 100 + index, name: `English ${index}`, nameTh: `English ${index}` }));
+    const thai = { ...favorite, id: 999, name: "Thai dish", nameTh: "อาหารภาษาไทย" };
+    for (const mode of ["familiar", "balanced", "goal", "meal"] as const) {
+      const result = recommendFoods({ ...options, mode, foods: [...english, thai] });
+      expect(result.recommendations[0].food.id).toBe(999);
+      expect(result.recommendations.some(item => item.food.nameTh.startsWith("English"))).toBe(true);
+      expect(result.mealCandidates[0].food.id).toBe(999);
+      const hidden = recommendFoods({ ...options, mode, foods: [...english, thai], preferences: { "catalog:999": "avoid" } });
+      expect(hidden.recommendations.every(item => item.food.id !== 999)).toBe(true);
+    }
+  });
   it("lets the selected macro focus change ranking at the same calorie budget", () => {
     const protein = { ...favorite, id: 10, name: "Protein dish", calories: 700, protein: 45, carbs: 0, fat: 0 };
     const carbs = { ...protein, id: 11, name: "Carb dish", protein: 0, carbs: 88 };
