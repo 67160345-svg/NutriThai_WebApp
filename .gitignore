@@ -13,3 +13,5 @@ secrets/
 /NutriThai-*.zip
 *.pyc
 *.pyo
+.ruff_cache/
+coverage.xml

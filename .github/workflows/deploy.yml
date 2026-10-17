@@ -1,23 +1,154 @@
-name: Deploy Static Website
+name: NutriThai CI/CD
 
 on:
   push:
+    branches: [main]
+  pull_request:
     branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
-  group: pages
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  frontend:
+    name: Frontend (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [22, 24]
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - name: Check TypeScript
+        run: npm run typecheck
+      - name: Unit tests and coverage
+        run: npm run test:coverage
+      - name: Production build
+        run: npm run build
+      - name: Save frontend coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage-node-${{ matrix.node }}
+          path: frontend/coverage/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  backend:
+    name: Backend (Python ${{ matrix.python }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.12", "3.14"]
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements.txt
+            backend/requirements-dev.txt
+      - name: Install dependencies
+        run: python -m pip install -r requirements-dev.txt
+      - name: Check Python errors
+        run: python -m ruff check --select E9,F63,F7,F82 .
+      - name: Unit tests and coverage
+        run: python -m pytest --cov=main --cov-report=term-missing --cov-report=xml:coverage/coverage.xml --cov-report=html:coverage/html --cov-fail-under=80
+      - name: Save backend coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage-python-${{ matrix.python }}
+          path: backend/coverage/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  database:
+    name: Database migrations and RLS
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: database-tests
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: database-tests/package-lock.json
+      - run: npm ci
+      - name: Fresh install, upgrade, catalog and two-user RLS
+        run: npm test
+
+  website:
+    name: Static website checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - name: Validate HTML links and assets
+        run: python3 .github/scripts/check_pages.py
+      - name: Check JavaScript syntax
+        run: node --check pages/script.js
+
+  checks:
+    name: CI checks
+    if: ${{ always() }}
+    needs: [frontend, backend, database, website]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require every check to pass
+        env:
+          RESULTS: ${{ join(needs.*.result, ',') }}
+        run: test "$RESULTS" = "success,success,success,success"
+
   deploy:
+    name: Deploy GitHub Pages
+    needs: checks
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    concurrency:
+      group: pages
+      cancel-in-progress: false
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -26,13 +157,6 @@ jobs:
         uses: actions/checkout@v6
         with:
           persist-credentials: false
-      - name: Check website files
-        run: |
-          test -f pages/index.html
-          test -s pages/style.css
-          test -s pages/script.js
-          test -s pages/assets/preview.png
-          node --check pages/script.js
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload static website

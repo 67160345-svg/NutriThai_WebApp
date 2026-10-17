@@ -1,5 +1,11 @@
 # NutriThai Calorie App
 
+## CI และ CD
+
+[![NutriThai CI/CD](https://github.com/67160345-svg/NutriThai_WebApp/actions/workflows/deploy.yml/badge.svg)](https://github.com/67160345-svg/NutriThai_WebApp/actions/workflows/deploy.yml)
+
+ตรวจ frontend, backend, database migrations/RLS และหน้าเว็บทุกครั้งที่ push เข้า `main` หรือเปิด Pull Request และ deploy GitHub Pages เฉพาะเมื่อการตรวจทั้งหมดผ่าน อ่าน [รายละเอียดและคำสั่งตรวจในเครื่อง](docs/ci-cd.md)
+
 รายการอาหาร ผลค้นหา และคำแนะนำแสดง [ชื่อภาษาไทยก่อน](docs/thai-first-foods-2026-10-17.md) แล้ว โดยยังเลือกอาหารชื่ออังกฤษได้ครบ
 
 **17 ตุลาคม 2026:** แยกชื่ออาหารและหน่วยตวงในฐานจริงครบ 4,580 รายการ เพิ่ม `source_portion` และ `original_name` พร้อมปัดตัวเลขผลลัพธ์บนเว็บเป็นจำนวนเต็ม โดยคงความละเอียดในการคำนวณ ดู [รายละเอียดและผลตรวจ](docs/catalog-names-and-display-2026-10-17.md)
