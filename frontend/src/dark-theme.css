@@ -1,0 +1,125 @@
+/* Dark palette and explicit foreground/background pairs for legacy light surfaces. */
+:root[data-theme="dark"] {
+  --ink: #e8f0e9; --ink-muted: #b3c2b7; --ink-soft: #a6b7ab;
+  --surface: #1d2b24; --surface-soft: #14201b; --canvas: #14201b;
+  --dark: #2b4937; --line: #4d6355; --muted: #b3c2b7;
+  --brand: #b8dc96; --brand-deep: #9dcc7e; --danger: #ffb6b0;
+}
+:root[data-theme="dark"] .app-header { background: #14201bf2; border-color: var(--line); }
+:root[data-theme="dark"] :is(.app-status, .mobile-nav, .profile-user-dropdown, .user-menu-trigger, .header-search, .today-chip,
+ .logger-catalog, .logger-tabs, .logger-shortcuts, .logger-selection, .logger-custom form,
+ .profile-card, .profile-summary > section, .auth-form-card, .insight-stat, .insight-chart, .history-empty,
+ .history-meal, .history-summary-card, .ai-intro, .ai-intro > div) { background: var(--surface); color: var(--ink); border-color: var(--line); }
+:root[data-theme="dark"] :is(.app-shell, .auth-page, .profile-page) [class*="bg-white"] { background-color: var(--surface) !important; }
+:root[data-theme="dark"] :is(.app-shell, .auth-page, .profile-page) [class*="bg-[#f"] { background-color: var(--canvas) !important; }
+:root[data-theme="dark"] :is(.app-shell, .auth-page, .profile-page) [class*="bg-[#e"] { background-color: #2d4735 !important; }
+:root[data-theme="dark"] :is(.app-shell, .auth-page, .profile-page) [class*="text-[#1"] { color: var(--ink) !important; }
+:root[data-theme="dark"] :is(.app-shell, .auth-page, .profile-page) :is([class*="text-[#5"], [class*="text-[#7"], [class*="text-[#8"]) { color: var(--muted) !important; }
+:root[data-theme="dark"] :is(.app-shell, .auth-page, .profile-page) :is([class*="text-[#2"], [class*="text-[#3"]) { color: var(--brand) !important; }
+:root[data-theme="dark"] :is(.app-shell, .auth-page, .profile-page) [class*="border-[#"] { border-color: var(--line) !important; }
+:root[data-theme="dark"] :is(.app-shell, .auth-page, .profile-page) :is(input, select, textarea) { background-color: var(--canvas) !important; color: var(--ink) !important; border-color: var(--line) !important; }
+:root[data-theme="dark"] .service-notice { background: #302b1d; color: #f0d591; border-color: #6a5830; }
+:root[data-theme="dark"] :is([class*="bg-rose"], [role="alert"][class*="rose"]) { background-color: #40282d !important; color: #ffc1cb !important; }
+:root[data-theme="dark"] :is(.logger-selection, .logger-save-bar, .food-recommendations, .recommendation-item, .logger-selected-summary) { background: var(--surface) !important; color: var(--ink); border-color: var(--line) !important; }
+:root[data-theme="dark"] .logger-categories button { background: var(--surface); color: var(--ink); border-color: var(--line); }
+:root[data-theme="dark"] :is(.logger-categories, .logger-tabs) button.is-active,
+:root[data-theme="dark"] .mobile-nav .is-active .mobile-nav-icon { background: #b8dc96; color: #203221; }
+:root[data-theme="dark"] .mobile-nav .is-active { color: #c8e6af; }
+:root[data-theme="dark"] :is(.dashboard-hero, .hero-copy, .hero-copy p, .hero-copy h2) { color: #213425; }
+:root[data-theme="dark"] .hero-copy .eyebrow { color: #326b4c; }
+:root[data-theme="dark"] .app-shell .logger-save-bar > button { color: white; background: var(--dark); }
+
+/* Keep pastel accents only where their foreground is explicitly dark. */
+:root[data-theme="dark"] {
+  --on-accent: #203221;
+  --tint-green: #293d2d;
+  --tint-blue: #223b40;
+  --tint-purple: #352f43;
+  --tint-yellow: #3b3525;
+  --info: #9bd5f5;
+  --accent: #f2ce84;
+}
+:root[data-theme="dark"] :is(.nt-card, .logger-shortcuts, .shortcut-foods button) { border-color: var(--line); }
+:root[data-theme="dark"] :is(.nt-button--ghost, .profile-back, .profile-previous,
+ .profile-steps, .history-date-picker, .history-summary, .insights-range, .auth-layout,
+ .weight-tracker form, .ai-page .logger-scan > div, .history-meal > header > button,
+ .logger-date, .auth-form-card [role="tablist"]) { background: var(--surface); color: var(--ink); }
+:root[data-theme="dark"] :is(.meal-group, .meal-group--lunch, .history-metric,
+ .history-meal--lunch > header, .insight-observations article:nth-child(3),
+ .repeat-meal, .profile-identity, .profile-energy-explainer, .weight-tracker,
+ .auth-form-card > button:not([type="submit"])) { background: var(--tint-green); color: var(--ink); }
+:root[data-theme="dark"] :is(.meal-group--breakfast, .history-meal > header,
+ .history-metric:nth-child(2), .scan-card) { background: var(--tint-blue); color: var(--ink); }
+:root[data-theme="dark"] :is(.meal-group--dinner, .history-meal--dinner > header) { background: var(--tint-purple); }
+:root[data-theme="dark"] :is(.history-metric:nth-child(3), .history-meal--snack > header,
+ .insight-observations article:nth-child(2)) { background: var(--tint-yellow); }
+:root[data-theme="dark"] .history-metric:nth-child(4) { background: var(--tint-green); }
+:root[data-theme="dark"] .history-meal--lunch > header { background: var(--tint-green); }
+:root[data-theme="dark"] .soft-page .weight-tracker { background: var(--tint-green); }
+:root[data-theme="dark"] :is(.weekly-card, .soft-page .insight-chart, .auth-story) { background: #223a2d; }
+:root[data-theme="dark"] .insight-stat:nth-child(1) { background: var(--tint-green); }
+:root[data-theme="dark"] :is(.ai-intro li, .weight-tracker > svg) { background: var(--canvas); }
+:root[data-theme="dark"] :is(.macro-track, .profile-activity-bars i) { background: #415047; }
+:root[data-theme="dark"] .profile-activity-bars .is-filled { background: var(--brand); }
+:root[data-theme="dark"] .calorie-ring svg > circle:first-of-type { stroke: #415047; }
+:root[data-theme="dark"] :is(.meal-type-icon, .scan-icon, .profile-avatar-large,
+ .profile-section-icon, .soft-empty-icon, .scan-upload-icon,
+ .insight-stat > span, .food-logger .recommendation-heading > .nt-icon,
+ .food-logger .logger-results > button > div > span,
+ .food-logger .recommendation-number) { background: #344c3e; color: #d4edc3; }
+:root[data-theme="dark"] :is(.scan-card > p:not(.eyebrow), .scan-card > small,
+ .logger-shortcuts p, .logger-shortcuts small, .guest-storage-note,
+ .profile-identity > div > span, .profile-energy-explainer dt, .profile-energy-explainer > p,
+ .insight-stat p, .insight-stat small, .ai-intro > div > p, .ai-intro li p,
+ .mobile-nav button) { color: var(--muted); }
+:root[data-theme="dark"] :is(.meal-add, .remove-meal, .history-food-row > span,
+ .profile-options button > .nt-icon, .ai-intro li > span) { color: var(--brand); }
+:root[data-theme="dark"] .meal-add { border-color: var(--line); }
+:root[data-theme="dark"] :is(.meal-add:hover, .food-logger .logger-results > button:hover,
+ .food-logger .recommendation-show-more:hover) { background: #354b3b; border-color: var(--brand); }
+:root[data-theme="dark"] .remove-meal:hover { background: #40282d; color: var(--danger); }
+
+/* Selected controls need a dark foreground on their bright accent background. */
+:root[data-theme="dark"] .nt-button--soft,
+:root[data-theme="dark"] .profile-steps .is-reached > span,
+:root[data-theme="dark"] :is(.app-loading, .app-account-error) > .nt-icon { color: var(--on-accent); background: var(--lime); }
+:root[data-theme="dark"] .app-shell :is(.soft-page, .logger-selection) button[aria-pressed="true"] {
+  background: var(--lime) !important; border-color: var(--lime) !important; color: var(--on-accent) !important;
+}
+:root[data-theme="dark"] .app-shell :is(.soft-page, .logger-selection) button[aria-pressed="true"] * {
+  background: transparent; color: var(--on-accent) !important;
+}
+:root[data-theme="dark"] :is(.profile-gender, .profile-options) button[aria-pressed="true"] {
+  background: var(--tint-green); border-color: var(--brand); color: var(--ink);
+}
+:root[data-theme="dark"] button[aria-pressed="true"] > .profile-choice-check { color: var(--on-accent); }
+:root[data-theme="dark"] .app-shell :is(.nt-button--ghost, .scan-card .nt-button) { background: var(--surface); color: var(--ink); }
+:root[data-theme="dark"] :is(.app-shell, .profile-page, .auth-page) :where(button, input, select, textarea, summary):focus-visible {
+  outline: 3px solid var(--brand); outline-offset: 3px;
+}
+
+/* Legacy utility colors also appear in nutrition, validation and status messages. */
+:root[data-theme="dark"] :is(.app-shell, .auth-page, .profile-page) :is([class*="text-[#4f84a8]"], [class*="text-blue-"]) { color: var(--info) !important; }
+:root[data-theme="dark"] :is(.app-shell, .auth-page, .profile-page) :is([class*="text-[#a46616]"], [class*="text-[#9d5b16]"], [class*="text-amber-"]) { color: var(--accent) !important; }
+:root[data-theme="dark"] :is(.app-shell, .auth-page, .profile-page) [class*="text-[#66845d]"] { color: var(--brand) !important; }
+:root[data-theme="dark"] :is(.app-shell, .auth-page, .profile-page) :is([class*="text-rose-"], [class*="text-red-"], [class*="text-[#9d302b]"], [class*="text-[#b84444]"]) { color: var(--danger) !important; }
+:root[data-theme="dark"] :is(.profile-error, [class*="bg-[#fff1ef]"], [class*="bg-[#fff0ed]"]) { background: #40282d !important; color: var(--danger) !important; }
+:root[data-theme="dark"] :is(.app-shell, .auth-page) [class*="bg-emerald-500/"] { background-color: var(--tint-green) !important; }
+:root[data-theme="dark"] :is(.app-shell, .auth-page) [class*="bg-[#0d1320"] { background-color: var(--surface) !important; }
+:root[data-theme="dark"] :is(.app-shell, .auth-page) [class*="bg-amber-"] { background-color: var(--tint-yellow) !important; }
+:root[data-theme="dark"] .logger-selection [role="alert"] { color: var(--danger); }
+:root[data-theme="dark"] .energy-remaining.is-over strong { color: var(--danger); }
+:root[data-theme="dark"] .logger-scan > label[aria-disabled="true"] { background: #34453a; color: #c2cec5; }
+
+/* Match the specificity of the older page-level !important form rules. */
+:root[data-theme="dark"] .app-shell :is(.food-logger, .soft-page) :is(input:not([type="checkbox"]), select),
+:root[data-theme="dark"] .app-shell .food-logger #food-search {
+  background-color: var(--canvas) !important; color: var(--ink) !important; border-color: var(--line) !important;
+}
+:root[data-theme="dark"] :is(input, textarea)::placeholder { color: var(--ink-soft); opacity: 1; }
+:root[data-theme="dark"] .app-shell [class~="bg-emerald-500"] { background-color: #356044 !important; }
+:root[data-theme="dark"] .weight-tracker > svg text { fill: var(--ink-muted); }
+:root[data-theme="dark"] .weight-tracker > svg polyline { stroke: var(--brand); }
+:root[data-theme="dark"] .weight-tracker > svg circle { fill: var(--brand); }
+:root[data-theme="dark"] .app-shell .insight-chart [class*="border-[#d97706]"] { border-color: var(--accent) !important; }
+

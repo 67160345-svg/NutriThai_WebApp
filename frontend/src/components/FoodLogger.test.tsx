@@ -92,6 +92,38 @@ describe("FoodLogger Gemini consent", () => {
     expect(await screen.findByText("✓ เพิ่มเรียบร้อย!")).toBeTruthy();
   });
 
+  it("reuses the same save request after an uncertain failure and blocks repeated clicks", async () => {
+    const food: Food = { id: 1, name: "Rice", nameTh: "ข้าว", category: "food", calories: 200, protein: 5, carbs: 40, fat: 2, sugar: 0, fiber: 1 };
+    let rejectSave!: (reason: Error) => void;
+    const onAddBatch = vi.fn().mockImplementationOnce(() => new Promise((_, reject) => { rejectSave = reject; })).mockResolvedValue(undefined);
+    render(<FoodLogger foods={[food]} onAddLog={vi.fn()} onAddBatch={onAddBatch} isAuthenticated={false} />);
+    fireEvent.click(screen.getByRole("button", { name: /ข้าว/ }));
+    const save = screen.getByRole("button", { name: "บันทึกอาหาร" });
+    fireEvent.click(save); fireEvent.click(save);
+    expect(onAddBatch).toHaveBeenCalledOnce();
+    rejectSave(new Error("timeout"));
+    fireEvent.click(await screen.findByRole("button", { name: "ลองบันทึกอีกครั้ง" }));
+    await screen.findByText("✓ เพิ่มเรียบร้อย!");
+    expect(onAddBatch).toHaveBeenCalledTimes(2);
+    expect(onAddBatch.mock.calls[1]).toEqual(onAddBatch.mock.calls[0]);
+  });
+
+  it("offers recent foods offline and lets users review a previous meal before saving", async () => {
+    const food: Food = { id: 1, name: "Rice", nameTh: "ข้าว", category: "food", calories: 200, protein: 5, carbs: 40, fat: 2, sugar: 0, fiber: 1 };
+    const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
+    loggerMocks.readFoods.mockRejectedValue(new Error("offline"));
+    const onAddBatch = vi.fn().mockResolvedValue(undefined);
+    render(<FoodLogger foods={[]} logs={[{ id: "old", food, servings: 2, mealType: "dinner", loggedAt: yesterday }]} onAddLog={vi.fn()} onAddBatch={onAddBatch} isAuthenticated={false} />);
+    fireEvent.click(screen.getByRole("button", { name: /ใช้มื้อเดิมจาก/ }));
+    expect(screen.getByRole("region", { name: "ชุดมื้ออาหาร" })).toBeTruthy();
+    expect((screen.getByLabelText("ปริมาณชุด 1") as HTMLInputElement).value).toBe("2");
+    expect(onAddBatch).not.toHaveBeenCalled();
+    fireEvent.change(screen.getByLabelText("ค้นหาอาหารภาษาไทยหรืออังกฤษ"), { target: { value: "ข้าว" } });
+    expect(await screen.findByText(/ค้นหาออนไลน์ไม่ได้/)).toBeTruthy();
+    fireEvent.click(screen.getAllByRole("button", { name: /ข้าว/ }).at(-1)!);
+    expect(screen.getByLabelText("จำนวน (หน่วย)")).toBeTruthy();
+  });
+
   it("validates serving limits and shows log-save errors", async () => {
     const food: Food = {
       id: 1, name: "Rice", nameTh: "ข้าว", category: "food",

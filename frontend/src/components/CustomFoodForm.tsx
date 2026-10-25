@@ -1,8 +1,10 @@
+import { useLocalizedView } from "../lib/i18n";
 import { useState } from "react";
 import type { Food, FoodUnit } from "../types";
 interface Props { onSave: (food: Food) => Promise<void>; submitLabel?: string; initialFood?: Food; }
 const nutrients = [["calories", "พลังงาน (kcal)"], ["protein", "โปรตีน (g)"], ["carbs", "คาร์โบไฮเดรต (g)"], ["fat", "ไขมัน (g)"], ["sugar", "น้ำตาล (g)"], ["fiber", "ใยอาหาร (g)"]] as const;
 export default function CustomFoodForm({ onSave, submitLabel = "บันทึกอาหารส่วนตัว", initialFood }: Props) {
+  const { view } = useLocalizedView();
   const [name, setName] = useState(initialFood?.nameTh ?? "");
   const [category, setCategory] = useState<Food["category"]>(initialFood?.category ?? "food");
   const [unit, setUnit] = useState<FoodUnit>(initialFood?.servingUnit ?? "g");
@@ -12,7 +14,7 @@ export default function CustomFoodForm({ onSave, submitLabel = "บันทึ�
   const [values, setValues] = useState(Object.fromEntries(nutrients.map(([key]) => [key, String(initialFood?.[key] ?? 0)])));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  return <form className="space-y-4 rounded-2xl border bg-white p-4" onSubmit={async event => {
+  return view(<form className="space-y-4 rounded-2xl border bg-white p-4" onSubmit={async event => {
     event.preventDefault(); setError("");
     if (!name.trim() || !label.trim() || !Number.isFinite(Number(size)) || Number(size) <= 0 || Number(size) > 10000 ||
       (grams !== "" && (!Number.isFinite(Number(grams)) || Number(grams) <= 0 || Number(grams) > 10000)) ||
@@ -43,5 +45,5 @@ export default function CustomFoodForm({ onSave, submitLabel = "บันทึ�
       <button type="submit" className="w-full rounded-xl bg-[#2d6e3e] p-3 font-semibold text-white">{busy ? "กำลังบันทึก..." : submitLabel}</button>
     </fieldset>
     {error && <p role="alert" className="text-sm text-rose-700">{error}</p>}
-  </form>;
+  </form>);
 }

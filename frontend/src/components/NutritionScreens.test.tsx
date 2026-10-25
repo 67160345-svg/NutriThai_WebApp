@@ -100,7 +100,7 @@ describe("nutrition screens", () => {
     expect(screen.queryByText("ไอเดียเมนูไทยสำหรับมื้อถัดไป")).toBeNull();
   });
 
-  it("renders the five navigation choices and calls profile/sign-out actions", () => {
+  it("keeps five navigation choices and profile actions, with Settings outside the sidebar", () => {
     const onNavigate = vi.fn();
     const onEditProfile = vi.fn();
     const onSignOut = vi.fn();
@@ -117,6 +117,7 @@ describe("nutrition screens", () => {
 
     const navigation = screen.getAllByRole("navigation", { name: "เมนูหลัก" })[0];
     expect(navigation.querySelectorAll("button")).toHaveLength(5);
+    expect(screen.queryByRole("button", { name: "ตั้งค่า" })).toBeNull();
     fireEvent.click(screen.getAllByRole("button", { name: "ประวัติอาหาร" })[0]);
     expect(onNavigate).toHaveBeenCalledWith("history");
     fireEvent.click(screen.getAllByRole("button", { name: /แก้ไขโปรไฟล์/ })[0]);

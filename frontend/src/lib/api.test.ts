@@ -45,4 +45,11 @@ describe("backend API client", () => {
 
     await expect(apiJson("/api/v1/profile")).rejects.toThrow("Backend ส่งข้อมูลตอบกลับที่ไม่ถูกต้อง");
   });
+
+  it("replaces service and network failures with actionable messages", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ detail: "Supabase DNS failure" }), { status: 502 })));
+    await expect(apiJson("/api/v1/foods")).rejects.toThrow("ระบบไม่พร้อมใช้งานชั่วคราว");
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("Failed to fetch")));
+    await expect(apiJson("/api/v1/foods")).rejects.toThrow("กรุณาตรวจอินเทอร์เน็ตแล้วลองอีกครั้ง");
+  });
 });

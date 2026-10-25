@@ -1,14 +1,19 @@
+import { useLocalizedView } from "../lib/i18n";
 import { displayInteger, displayMeasurements } from "../lib/display";
 import type { Food, FoodUnit } from "../types";
 import { availableUnits, basisLabel, toServings, unitNames, validServings } from "../lib/portions";
 interface Props { food: Food; quantity: string; unit: FoodUnit; onChange: (quantity: string, unit: FoodUnit) => void; id?: string; }
 export default function QuantityInput({food, quantity, unit, onChange, id = "serving-count"}: Props) {
+  const { view } = useLocalizedView();
   const multiplier = toServings(food, Number(quantity), unit);
-  return <div className="space-y-3 rounded-xl bg-[#f8f5ef] p-4">
+  return view(<div className="space-y-3 rounded-xl bg-[#f8f5ef] p-4">
     <p className="text-sm text-[#596c5c]">ค่าโภชนาการต่อ {basisLabel(food)}</p>
+    {food.servingUnit !== "g" && food.servingUnit !== "ml" && (food.portionGrams
+      ? <p className="text-sm text-[#596c5c]">1 {displayMeasurements(food.servingLabel || "หน่วยบริโภค")} ≈ {displayInteger(food.portionGrams)} กรัม</p>
+      : <p className="text-xs text-[#596c5c]">รายการนี้ยังไม่มีน้ำหนักอ้างอิงเป็นกรัม โปรดใช้หน่วยที่ระบุ</p>)}
     <div className="flex flex-wrap items-end gap-2">
       <label className="text-sm" htmlFor={id}>จำนวน (หน่วย)
-        <input id={id} type="number" min="0.001" step="any" value={quantity} onChange={e => onChange(e.target.value, unit)} className="mt-1 block w-28 rounded-lg border bg-white p-2" />
+        <input id={id} type="number" inputMode="decimal" min="0.001" step="any" value={quantity} onChange={e => onChange(e.target.value, unit)} className="mt-1 block w-28 rounded-lg border bg-white p-2" />
       </label>
       <label className="text-sm">หน่วยปริมาณ
         <select value={unit} onChange={e => { const next = e.target.value as FoodUnit; const baseAmount = (food.servingSize ?? 1) * (next === "g" && food.servingUnit !== "g" ? food.portionGrams ?? 1 : 1); onChange(String(Number(((validServings(multiplier) ? multiplier : 1) * baseAmount).toFixed(6))), next); }} className="mt-1 block max-w-52 rounded-lg border bg-white p-2">
@@ -19,5 +24,5 @@ export default function QuantityInput({food, quantity, unit, onChange, id = "ser
       <button type="button" aria-label="เพิ่มจำนวนครึ่งหน่วย" onClick={() => onChange(String(Number(quantity) + 0.5), unit)} className="rounded-lg border px-3 py-2">+</button>
     </div>
     {validServings(multiplier) ? <div className="text-sm text-[#2d6e3e]">รวม {Math.round(food.calories * multiplier)} kcal · โปรตีน {displayInteger(food.protein * multiplier)} g · คาร์บ {displayInteger(food.carbs * multiplier)} g · ไขมัน {displayInteger(food.fat * multiplier)} g</div> : <div role="alert" className="text-sm text-rose-700">ปริมาณต้องเทียบเท่า 0.001–100 หน่วยข้อมูล</div>}
-  </div>;
+  </div>);
 }

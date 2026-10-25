@@ -4,6 +4,10 @@
 @import './food-logger.css';
 @import './profile.css';
 @import './remaining-pages.css';
+@import './usability.css';
+@import './motion.css';
+@import './settings.css';
+@import './dark-theme.css';
 
 :root {
   --ink: #222b2e;
@@ -72,10 +76,6 @@ select:focus-visible {
   letter-spacing: 0;
 }
 
-.app-shell main > div {
-  animation: page-enter 220ms ease-out both;
-}
-
 .app-shell [class*="bg-[#141c2e"] {
   background-color: var(--surface) !important;
 }
@@ -133,15 +133,6 @@ select:focus-visible {
   width: 18px;
   height: 18px;
   accent-color: var(--brand);
-}
-
-@keyframes page-enter {
-  from { opacity: 0; transform: translateY(5px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .app-shell main > div { animation: none; }
 }
 
 * {

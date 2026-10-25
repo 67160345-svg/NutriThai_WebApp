@@ -1,30 +1,20 @@
 @echo off
-setlocal
-set "PROJECT_ROOT=%~dp0"
-
-powershell.exe -NoProfile -ExecutionPolicy Bypass -Command ^
-  "$ErrorActionPreference = 'Stop';" ^
-  "$root = (Resolve-Path $env:PROJECT_ROOT).Path;" ^
-  "$envFile = Join-Path $root '.env';" ^
-  "if (-not (Test-Path -LiteralPath $envFile)) { throw 'Root .env file not found. Create it from .env.example first.' };" ^
-  "Get-Content -LiteralPath $envFile | ForEach-Object { if ($_ -match '^\s*([^#=\s]+)\s*=\s*(.*)$') { $name = $matches[1]; $value = $matches[2].Trim(); if ($value.Length -ge 2 -and (($value[0] -eq '"' -and $value[-1] -eq '"') -or ($value[0] -eq [char]39 -and $value[-1] -eq [char]39))) { $value = $value.Substring(1, $value.Length - 2) }; [Environment]::SetEnvironmentVariable($name, $value, 'Process') } };" ^
-  "if ([string]::IsNullOrWhiteSpace($env:SUPABASE_URL)) { throw 'SUPABASE_URL is missing from the root .env file.' };" ^
-  "if ([string]::IsNullOrWhiteSpace($env:SUPABASE_PUBLISHABLE_KEY) -and [string]::IsNullOrWhiteSpace($env:SUPABASE_ANON_KEY)) { throw 'SUPABASE_PUBLISHABLE_KEY is missing from the root .env file.' };" ^
-  "$backendDir = Join-Path $root 'backend';" ^
-  "$frontendDir = Join-Path $root 'frontend';" ^
-  "$backendCommand = '/k cd /d ""' + $backendDir + '"" && python -m uvicorn main:app --host 0.0.0.0 --reload --port 8000';" ^
-  "$frontendCommand = '/k cd /d ""' + $frontendDir + '"" && npm run dev -- --host 0.0.0.0';" ^
-  "Start-Process -FilePath $env:ComSpec -ArgumentList $backendCommand;" ^
-  "Start-Process -FilePath $env:ComSpec -ArgumentList $frontendCommand;" ^
-  "$ngrok = Get-Command ngrok -ErrorAction SilentlyContinue;" ^
-  "if ($ngrok) { Start-Process -FilePath $env:ComSpec -ArgumentList '/k ngrok http 3000' } else { Write-Output 'ngrok not found; starting local frontend and backend only.' };" ^
-  "Start-Process 'http://localhost:3000';" ^
-  "Write-Output 'Local services are starting. Frontend: http://localhost:3000  Backend docs: http://localhost:8000/docs'"
-
-if errorlevel 1 (
-  echo Failed to start local services. Check the messages above.
-  pause
-  exit /b 1
-)
-
-endlocal
+setlocal EnableExtensions
+set "RUN_ROOT=%~dp0"
+set "RUN_MODE=Docker"
+set "RUN_FLAGS="
+set "PAUSE_ON_ERROR=1"
+:parse
+if "%~1"=="" goto run
+if /i "%~1"=="--native" (set "RUN_MODE=Native"& shift /1& goto parse)
+if /i "%~1"=="--docker" (set "RUN_MODE=Docker"& shift /1& goto parse)
+if /i "%~1"=="--no-browser" (set "RUN_FLAGS=%RUN_FLAGS% -NoBrowser"& set "PAUSE_ON_ERROR=0"& shift /1& goto parse)
+if /i "%~1"=="--check" (set "RUN_FLAGS=%RUN_FLAGS% -CheckOnly"& set "PAUSE_ON_ERROR=0"& shift /1& goto parse)
+if /i "%~1"=="--stop" (set "RUN_FLAGS=%RUN_FLAGS% -Stop"& shift /1& goto parse)
+echo Usage: start_local.bat [--docker ^| --native] [--no-browser] [--check] [--stop]
+exit /b 1
+:run
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%RUN_ROOT%start_local.ps1" -Mode %RUN_MODE% %RUN_FLAGS%
+set "RUN_RESULT=%ERRORLEVEL%"
+if not "%RUN_RESULT%"=="0" if "%PAUSE_ON_ERROR%"=="1" pause
+exit /b %RUN_RESULT%

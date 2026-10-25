@@ -1,3 +1,4 @@
+import { RawText, useLocalizedView } from "../lib/i18n";
 import { displayInteger } from "../lib/display";
 import { useEffect, useState } from "react";
 import type { Food, FoodLog, FoodUnit, MealType } from "../types";
@@ -7,6 +8,7 @@ import QuantityInput from "./QuantityInput";
 import CustomFoodForm from "./CustomFoodForm";
 interface Props { log: FoodLog; customFoods: Food[]; onSave: (log: FoodLog) => Promise<void>; onCancel: () => void; }
 export default function FoodLogEditor({ log, customFoods, onSave, onCancel }: Props) {
+  const { view, language } = useLocalizedView();
   const [food, setFood] = useState(log.food);
   const [replaceFood, setReplaceFood] = useState(false);
   const [date, setDate] = useState(localDateKey(log.loggedAt));
@@ -36,14 +38,14 @@ export default function FoodLogEditor({ log, customFoods, onSave, onCancel }: Pr
     setUnit(next.servingUnit ?? "portion"); setQuery(""); setManual(false); setError("");
   };
   const multiplier = toServings(food, Number(quantity), unit);
-  return <section aria-label="แก้ไขรายการอาหาร" className="mb-5 space-y-4 rounded-2xl border border-[#b7cdb9] bg-white p-4 sm:p-6">
+  return view(<section aria-label="แก้ไขรายการอาหาร" className="mb-5 space-y-4 rounded-2xl border border-[#b7cdb9] bg-white p-4 sm:p-6">
     <h2 className="text-lg font-bold">แก้ไขรายการอาหาร</h2>
     <fieldset disabled={busy} className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="text-sm">วันที่รับประทาน<input type="date" required max={localDateKey(new Date())} value={date} onChange={e => setDate(e.target.value)} className="mt-1 block w-full rounded-lg border p-2" /></label>
         <label className="text-sm">มื้ออาหาร<select value={meal} onChange={e => setMeal(e.target.value as MealType)} className="mt-1 block w-full rounded-lg border p-2"><option value="breakfast">เช้า</option><option value="lunch">กลางวัน</option><option value="dinner">เย็น</option><option value="snack">ของว่าง</option></select></label>
       </div>
-      <p className="font-semibold">{food.nameTh} <span className="text-xs font-normal text-[#596c5c]">{displayInteger(food.calories)} kcal / {basisLabel(food)}</span></p>
+      <p className="font-semibold"><RawText>{language === "en" ? food.name : food.nameTh}</RawText> <span className="text-xs font-normal text-[#596c5c]">{displayInteger(food.calories)} kcal / {basisLabel(food)}</span></p>
       <QuantityInput id="edit-log-quantity" food={food} quantity={quantity} unit={unit} onChange={(q, u) => {setQuantity(q);setUnit(u);}} />
       <details><summary className="cursor-pointer text-sm font-semibold text-[#2d6e3e]">เปลี่ยนอาหาร / แก้ชื่อและค่าโภชนาการ</summary>
         <div className="mt-3 space-y-3">
@@ -69,5 +71,5 @@ export default function FoodLogEditor({ log, customFoods, onSave, onCancel }: Pr
       </div>
     </fieldset>
     {error && <p role="alert" className="text-sm text-rose-700">{error}</p>}
-  </section>;
+  </section>);
 }

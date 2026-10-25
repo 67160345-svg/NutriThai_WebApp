@@ -1,0 +1,33 @@
+.service-notice {
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;
+  gap: 12px; max-width: 1160px; margin: 16px auto; padding: 16px 20px;
+  border: 1px solid #e5d8ac; border-radius: 16px; background: #fff9e9; color: #70551e; font-size: calc(14px * var(--text-scale, 1));
+}
+.service-notice p { margin-top: 4px; line-height: 1.7; }
+.service-notice button { min-height: 44px; padding: 8px 16px; border: 1px solid currentColor; border-radius: 12px; font-weight: 600; }
+.service-notice button:disabled { opacity: .5; }
+.guest-storage-note { max-width: 1160px; margin: 12px auto; padding: 0 24px; font-size: calc(12px * var(--text-scale, 1)); line-height: 1.7; color: #657373; }
+.logger-shortcuts { padding: 20px; border-radius: 24px; background: white; border: 1px solid #e5e2da; }
+.logger-shortcuts h2 { font-size: calc(18px * var(--text-scale, 1)); font-weight: 700; }
+.logger-shortcuts h3 { font-size: calc(14px * var(--text-scale, 1)); font-weight: 600; margin: 16px 0 8px; }
+.logger-shortcuts p, .logger-shortcuts small { font-size: calc(12px * var(--text-scale, 1)); color: #596c5c; line-height: 1.7; }
+.shortcut-foods { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.shortcut-foods button, .repeat-meal { min-width: 0; min-height: 48px; text-align: left; padding: 12px; border: 1px solid #e5e2da; border-radius: 12px; overflow-wrap: anywhere; }
+.logger-shortcuts small { display: block; }
+.repeat-meal { margin-top: 16px; width: 100%; background: #edf4ee; }
+.repeat-meal:disabled { opacity: .5; }
+.app-shell :where(button, input, select, textarea):focus-visible { outline: 3px solid #2d6e3e; outline-offset: 3px; }
+.app-shell input, .app-shell select, .app-shell textarea { scroll-margin-block: 100px; }
+.logger-selection [role="alert"] { color: #9f1239; }
+@media (max-width: 767px) {
+  .shortcut-foods { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .app-shell input:not([type="checkbox"]):not([type="radio"]), .app-shell select, .app-shell textarea,
+  .app-shell .food-logger #food-search { font-size: calc(16px * var(--text-scale, 1)); min-height: 44px; max-width: 100%; }
+  .app-shell .food-logger button, .app-shell .history-page button { min-height: 44px; }
+  .app-main > .service-notice { margin-inline: 16px; }
+  .food-logger .logger-save-bar { bottom: calc(88px + env(safe-area-inset-bottom, 0px)); }
+  .logger-selection { padding-bottom: 24px; scroll-margin-block: 80px; }
+  .food-logger .logger-selected-summary > div { white-space: normal; }
+  .food-logger .logger-selected-summary .truncate { white-space: normal; overflow-wrap: anywhere; }
+  .logger-toast { max-width: calc(100vw - 32px); width: max-content; text-align: center; }
+}

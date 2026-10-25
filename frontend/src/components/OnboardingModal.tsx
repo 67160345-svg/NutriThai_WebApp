@@ -1,3 +1,4 @@
+import { RawText, useLocalizedView } from "../lib/i18n";
 import { useMemo, useState } from "react";
 import type { ActivityLevel, Gender, Goal, HealthProfile } from "../types";
 import { computeHealthMetrics } from "../lib/health";
@@ -29,6 +30,7 @@ const goals: { value: Goal; title: string; description: string }[] = [
 const fieldClass = "profile-input";
 
 export default function OnboardingModal({ onComplete, initialProfile, initialName = "", editing = false, isGuest = false, onCancel }: Props) {
+  const { view } = useLocalizedView();
   const [step, setStep] = useState(1);
   const [displayName, setDisplayName] = useState(initialName);
   const [gender, setGender] = useState<Gender>(initialProfile?.gender ?? "male");
@@ -92,7 +94,7 @@ export default function OnboardingModal({ onComplete, initialProfile, initialNam
     }
   };
 
-  return (
+  return view((
     <main className="profile-page">
       <div className="profile-container">
         <header className="profile-topbar">
@@ -108,7 +110,7 @@ export default function OnboardingModal({ onComplete, initialProfile, initialNam
           <div className="profile-editor">
             <section className="profile-identity">
               <div className="profile-avatar-large" aria-hidden="true">{displayName.trim().slice(0, 1) || <Icon name="user" />}</div>
-              <div><p className="profile-identity-label">MY NUTRITHAI</p><h2>{displayName.trim() || "ยินดีที่ได้รู้จัก"}</h2><span>{isGuest ? "โหมดผู้เยี่ยมชม" : "พื้นที่ดูแลโภชนาการของคุณ"}</span></div>
+              <div><p className="profile-identity-label">MY NUTRITHAI</p><h2><RawText>{displayName.trim() || "ยินดีที่ได้รู้จัก"}</RawText></h2><span>{isGuest ? "โหมดผู้เยี่ยมชม" : "พื้นที่ดูแลโภชนาการของคุณ"}</span></div>
               <Icon name="leaf" className="profile-identity-leaf" />
             </section>
             {!editing && <nav className="profile-steps" aria-label="ขั้นตอนตั้งค่าโปรไฟล์">
@@ -139,7 +141,7 @@ export default function OnboardingModal({ onComplete, initialProfile, initialNam
             </fieldset>
             {saveError && <div role="alert" className="profile-error">{saveError}</div>}
             <footer className="profile-actions">
-              <p><Icon name="leaf" />{isGuest ? "ข้อมูลผู้เยี่ยมชมจะหายเมื่อรีเฟรช" : editing ? "การเปลี่ยนแปลงจะมีผลเมื่อกดบันทึก" : "ปรับข้อมูลเหล่านี้ได้ภายหลัง"}</p>
+              <p><Icon name="leaf" />{isGuest ? "เก็บข้อมูลผู้เยี่ยมชมในเบราว์เซอร์เครื่องนี้" : editing ? "การเปลี่ยนแปลงจะมีผลเมื่อกดบันทึก" : "ปรับข้อมูลเหล่านี้ได้ภายหลัง"}</p>
               <div>{!editing && step > 1 && <button type="button" aria-label="ขั้นตอนก่อนหน้า" className="profile-previous" disabled={saving} onClick={() => { setStep(current => current - 1); setSaveError(""); }}>ย้อนกลับ</button>}
                 {!editing && step < 3 ? <Button onClick={next}>ถัดไป <Icon name="arrow" /></Button> : <Button onClick={() => void finish()} disabled={saving || !metrics}>{saving ? "กำลังบันทึก..." : editing ? "บันทึกการเปลี่ยนแปลง" : "เริ่มต้นใช้งาน"}<Icon name="arrow" /></Button>}
               </div>
@@ -158,5 +160,5 @@ export default function OnboardingModal({ onComplete, initialProfile, initialNam
         </div>
       </div>
     </main>
-  );
+  ));
 }

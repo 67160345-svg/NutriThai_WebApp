@@ -59,7 +59,7 @@ describe("recommendations in add-food flow", () => {
     fireEvent.change(screen.getByLabelText("แนวทางแนะนำ"), { target: { value: "goal" } });
     expect(screen.getByText(/บันทึกถึงกรอบพลังงาน/)).toBeTruthy();
     expect(screen.getByText(/ยังไม่มีรายการที่ประเมินได้/)).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: /ข้าวทดสอบ/ }));
+    fireEvent.click(screen.getAllByRole("button", { name: /ข้าวทดสอบ/ }).at(-1)!);
     expect(screen.getByLabelText("จำนวน (หน่วย)")).toBeTruthy();
   });
 });
