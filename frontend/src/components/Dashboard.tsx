@@ -1,3 +1,4 @@
+import { RawText, useLocalizedView } from "../lib/i18n";
 import { useId } from "react";
 import { consumedLabel } from "../lib/portions";
 import type { FoodLog, HealthProfile, MealType, Page } from "../types";
@@ -22,21 +23,23 @@ const meals: { id: MealType; label: string; icon: string }[] = [
 ];
 
 function CalorieRing({ consumed, goal }: { consumed: number; goal: number }) {
+  const { view } = useLocalizedView();
   const gradientId = useId();
   const radius = 84;
   const circumference = 2 * Math.PI * radius;
   const progress = goal > 0 ? Math.min(consumed / goal, 1) : 0;
-  return <div className="calorie-ring" aria-label={`${consumed} จาก ${goal} kcal`}>
+  return view(<div className="calorie-ring" aria-label={`${consumed} จาก ${goal} kcal`}>
     <svg viewBox="0 0 200 200" aria-hidden="true">
       <defs><linearGradient id={gradientId} x1="0" y1="0" x2="1" y2="1"><stop stopColor="#bde96c" /><stop offset="1" stopColor="#7fcdbd" /></linearGradient></defs>
       <circle cx="100" cy="100" r={radius} fill="none" stroke="#edf1ec" strokeWidth="15" />
       <circle cx="100" cy="100" r={radius} fill="none" stroke={consumed > goal ? "#c85a53" : `url(#${gradientId})`} strokeWidth="15" strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={circumference * (1 - progress)} transform="rotate(-90 100 100)" />
     </svg>
     <div className="calorie-ring-copy"><strong>{consumed.toLocaleString()}</strong><span>จาก {goal.toLocaleString()} kcal</span><b>{goal > 0 ? Math.round(consumed / goal * 100) : 0}%</b></div>
-  </div>;
+  </div>);
 }
 
 export default function Dashboard({ healthProfile, logs, onRemoveLog, onNavigate, username = "คุณ" }: Props) {
+  const { view, locale } = useLocalizedView();
   const todayDate = new Date();
   const todayKey = localDateKey(todayDate);
   const todayLogs = logs.filter(log => localDateKey(new Date(log.loggedAt)) === todayKey);
@@ -48,7 +51,7 @@ export default function Dashboard({ healthProfile, logs, onRemoveLog, onNavigate
     const date = new Date(weekStart);
     date.setDate(date.getDate() + index);
     const key = localDateKey(date);
-    return { key, date, label: date.toLocaleDateString("th-TH", { weekday: "short" }),
+    return { key, date, label: date.toLocaleDateString(locale, { weekday: "short" }),
       calories: Math.round(getTotals(logs.filter(log => localDateKey(new Date(log.loggedAt)) === key)).calories),
       isToday: key === todayKey, isFuture: key > todayKey };
   });
@@ -58,10 +61,10 @@ export default function Dashboard({ healthProfile, logs, onRemoveLog, onNavigate
   const points = weekly.filter(day => !day.isFuture).map((day, i) => `${12 + i * 46},${136 - day.calories / maxCalories * 116}`).join(" ");
   const goalY = 136 - healthProfile.calorieGoal / maxCalories * 116;
 
-  return <div className="dashboard-page">
+  return view(<div className="dashboard-page">
     <div className="dashboard-heading">
-      <div><p className="eyebrow">A LITTLE BETTER, EVERY DAY</p><h1>วันนี้ กินดีขึ้นอีกนิด<Icon name="leaf" /></h1><p>สวัสดี {username} · บันทึกทีละมื้อ เห็นภาพรวมทั้งวัน</p></div>
-      <span className="today-chip">{todayDate.toLocaleDateString("th-TH", { weekday: "long", day: "numeric", month: "long" })}</span>
+      <div><p className="eyebrow">A LITTLE BETTER, EVERY DAY</p><h1>วันนี้ กินดีขึ้นอีกนิด<Icon name="leaf" /></h1><p>สวัสดี <RawText>{username}</RawText> · บันทึกทีละมื้อ เห็นภาพรวมทั้งวัน</p></div>
+      <span className="today-chip">{todayDate.toLocaleDateString(locale, { weekday: "long", day: "numeric", month: "long" })}</span>
     </div>
     <div className="dashboard-grid">
       <div className="dashboard-main">
@@ -105,7 +108,7 @@ export default function Dashboard({ healthProfile, logs, onRemoveLog, onNavigate
               const calories = Math.round(getTotals(mealLogs).calories);
               return <article className={`meal-group meal-group--${meal.id}`} key={meal.id}>
                 <header><span className="meal-type-icon"><Icon name={meal.icon} /></span><div><h3>{meal.label}</h3><p>{mealLogs.length ? `${mealLogs.length} รายการ` : "ยังไม่ได้บันทึกมื้อนี้"}</p></div><strong>{calories} <small>kcal</small></strong></header>
-                {mealLogs.map(log => <div className="meal-log" key={log.id}><div><strong>{log.food.nameTh || log.food.name}</strong><p>{consumedLabel(log.food, log.servings)} · {Math.round(log.food.calories * log.servings)} kcal</p></div><button type="button" aria-label={`ลบ ${log.food.nameTh || log.food.name}`} onClick={() => onRemoveLog(log.id)} className="remove-meal">×</button></div>)}
+                {mealLogs.map(log => <div className="meal-log" key={log.id}><div><strong><RawText>{log.food.nameTh || log.food.name}</RawText></strong><p>{consumedLabel(log.food, log.servings)} · {Math.round(log.food.calories * log.servings)} kcal</p></div><button type="button" aria-label={`ลบ ${log.food.nameTh || log.food.name}`} onClick={() => onRemoveLog(log.id)} className="remove-meal">×</button></div>)}
                 <button type="button" className="meal-add" onClick={() => onNavigate?.("logger")}><Icon name="plus" />เพิ่ม{meal.label.replace("มื้อ", "")}</button>
               </article>;
             })}</div>
@@ -113,10 +116,10 @@ export default function Dashboard({ healthProfile, logs, onRemoveLog, onNavigate
         </div>
       </div>
       <aside className="dashboard-rail">
-        <section className="nt-card week-calendar" aria-label="สัปดาห์ปัจจุบัน"><h2>{todayDate.toLocaleDateString("th-TH-u-ca-gregory", { month: "long", year: "numeric" })}</h2><div>{weekly.map(day => <span key={day.key} className={day.isToday ? "is-today" : ""} aria-current={day.isToday ? "date" : undefined}><small>{day.label}</small><strong>{day.date.getDate()}</strong><i /></span>)}</div></section>
+        <section className="nt-card week-calendar" aria-label="สัปดาห์ปัจจุบัน"><h2>{todayDate.toLocaleDateString(`${locale}-u-ca-gregory`, { month: "long", year: "numeric" })}</h2><div>{weekly.map(day => <span key={day.key} className={day.isToday ? "is-today" : ""} aria-current={day.isToday ? "date" : undefined}><small>{day.label}</small><strong>{day.date.getDate()}</strong><i /></span>)}</div></section>
         <section className="nt-card energy-card"><div className="card-heading"><h2>พลังงานวันนี้</h2><span>kcal</span></div><CalorieRing consumed={Math.round(totals.calories)} goal={healthProfile.calorieGoal} /><p className={`energy-remaining ${remaining < 0 ? "is-over" : ""}`}>{remaining < 0 ? "เกินเป้าหมาย" : "เหลืออีก"} <strong>{Math.abs(remaining).toLocaleString()}</strong> kcal</p><p className="card-footnote">เป้าหมายจากโปรไฟล์ของคุณ</p></section>
         <section className="scan-card"><div className="scan-icon"><Icon name="camera" /></div><p className="eyebrow">A LITTLE HELP FROM AI</p><h2>สแกนอาหารด้วย AI</h2><p>เริ่มจากรูปมื้ออร่อย<br />แล้วตรวจข้อมูลก่อนบันทึก</p><Button variant="ghost" onClick={() => onNavigate?.("ai-scan")}><span>เริ่มสแกนอาหาร</span><Icon name="arrow" /></Button><small>ขอความยินยอมก่อนส่งรูปทุกครั้ง</small></section>
       </aside>
     </div>
-  </div>;
+  </div>);
 }

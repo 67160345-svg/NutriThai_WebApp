@@ -1,8 +1,10 @@
+import { useLocalizedView } from "../lib/i18n";
 import type { ReactNode } from "react";
 import Icon from "./Icon";
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
-  return <main className="auth-page"><div className="auth-layout">
+  const { view } = useLocalizedView();
+  return view(<main className="auth-page"><div className="auth-layout">
     <aside className="auth-story">
       <div className="auth-brand"><Icon name="leaf" />NutriThai<span>.</span></div>
       <div className="auth-story-copy"><p className="eyebrow">A LITTLE BETTER, EVERY DAY</p><h2>กินดีขึ้นอีกนิด<br />ในแบบของคุณ</h2><p>บันทึกทีละมื้อ เห็นภาพรวมทั้งวัน<br />เริ่มดูแลตัวเองด้วยสิ่งเล็ก ๆ ในทุกวัน</p></div>
@@ -11,5 +13,5 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
       <p className="auth-story-footnote">ทีละมื้อ ทีละวัน · YOUR DAILY NOURISHMENT</p>
     </aside>
     <div className="auth-form-area">{children}</div>
-  </div></main>;
+  </div></main>);
 }

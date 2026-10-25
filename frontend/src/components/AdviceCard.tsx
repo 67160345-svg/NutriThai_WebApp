@@ -1,3 +1,4 @@
+import { RawText, useLocalizedView } from "../lib/i18n";
 import { displayInteger } from "../lib/display";
 import { basisLabel } from "../lib/portions";
 import { useState } from "react";
@@ -22,6 +23,7 @@ interface Props {
 }
 
 export default function AdviceCard({ healthProfile, logs, foods, weights = [], onSaveWeight, onDeleteWeight, preferences = {}, recommendationsReady = true }: Props) {
+  const { view, locale, language } = useLocalizedView();
   const todayKey = localDateKey(new Date());
   const [range, setRange] = useState("7");
   const [customStart, setCustomStart] = useState(rollingStart(todayKey, 7));
@@ -34,7 +36,7 @@ export default function AdviceCard({ healthProfile, logs, foods, weights = [], o
     const dayLogs = logs.filter((log) => localDateKey(new Date(log.loggedAt)) === key);
     return {
       key,
-      label: date.toLocaleDateString("th-TH", { day: "numeric", month: "numeric" }),
+      label: date.toLocaleDateString(locale, { day: "numeric", month: "numeric" }),
       totals: getTotals(dayLogs),
       hasLogs: dayLogs.length > 0,
     };
@@ -56,7 +58,7 @@ export default function AdviceCard({ healthProfile, logs, foods, weights = [], o
       food.calories < sourceFood.calories - 80).slice(0, 3)
     : [];
 
-  return (
+  return view((
     <div className="soft-page insights-page">
       <PageHeading eyebrow="SMALL STEPS, BIGGER PICTURE" title="ข้อมูลเชิงลึก" description="เห็นแนวโน้มของคุณ เรียนรู้และปรับไปทีละวัน" />
       <div className="insights-range mb-5">
@@ -102,7 +104,7 @@ export default function AdviceCard({ healthProfile, logs, foods, weights = [], o
           <ul className="mt-3 grid grid-cols-2 gap-2 text-xs text-[#596c5c] sm:grid-cols-4">
             {weekly.map((day) => (
               <li key={day.key} className="flex justify-between gap-2">
-                <span>{day.label} {new Date(`${day.key}T12:00:00`).toLocaleDateString("th-TH", { day: "numeric", month: "short" })}</span>
+                <span>{day.label} {new Date(`${day.key}T12:00:00`).toLocaleDateString(locale, { day: "numeric", month: "short" })}</span>
                 <strong className="text-[#1a2820]">{Math.round(day.totals.calories)}</strong>
               </li>
             ))}
@@ -153,7 +155,7 @@ export default function AdviceCard({ healthProfile, logs, foods, weights = [], o
             {menuSwaps.map((food) => (
               <div key={food.id} className="flex items-center justify-between gap-3 rounded-[16px] border border-[#edf4ee] bg-[#fbfcf9] p-3">
                 <div className="min-w-0">
-                  <div className="truncate text-sm font-semibold text-[#1a2820]">{food.nameTh}</div>
+                  <div className="truncate text-sm font-semibold text-[#1a2820]"><RawText>{language === "en" ? food.name : food.nameTh}</RawText></div>
                   <div className="text-xs text-[#718078]">{displayInteger(food.calories)} kcal · {displayInteger(food.protein)} g โปรตีน</div>
                 </div>
                 <span className="shrink-0 rounded-full bg-[#edf4ee] px-2.5 py-1 text-xs font-semibold text-[#2d6e3e]">−{displayInteger(sourceFood.calories - food.calories)} kcal</span>
@@ -163,5 +165,5 @@ export default function AdviceCard({ healthProfile, logs, foods, weights = [], o
         </section>
       )}
     </div>
-  );
+  ));
 }

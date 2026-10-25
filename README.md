@@ -77,7 +77,7 @@ Frontend (React UI)
 - Sign in ด้วย Email และ Password
 - Create account ด้วย Username, Email และ Password
 - Continue as Guest โดยไม่ต้องมี account
-- ข้อมูลของบัญชีบันทึกใน Supabase; Guest ใช้ข้อมูลใน memory และหายเมื่อ refresh หรือออกจากระบบ
+- ข้อมูลของบัญชีบันทึกใน Supabase; Guest เก็บโปรไฟล์ บันทึกอาหาร อาหารส่วนตัว ความชอบ และน้ำหนักใน localStorage ของเบราว์เซอร์เครื่องนี้ และกลับมาใช้ต่อหลัง refresh ได้
 - Session คงอยู่หลัง refresh ผ่าน HttpOnly cookies ที่ backend จัดการ
 - Password show/hide control
 - ลืมรหัสผ่านทางอีเมล และตั้งรหัสผ่านใหม่จากลิงก์ Supabase
@@ -114,7 +114,7 @@ Frontend (React UI)
 - ตั้งค่า ชอบ / ไม่สนใจ / ไม่กินอาหารนี้ และจัดการอาหารที่ซ่อนจากคำแนะนำ
 - เลือกชุดมื้อแนะนำและปรับปริมาณ หรือจัดชุดเองเพื่อบันทึกสูงสุด 30 รายการพร้อมกัน
 - รองรับอาหารไทย ของหวาน และเครื่องดื่ม
-- เก็บข้อมูลใน Supabase สำหรับผู้ใช้ที่ลงชื่อเข้าใช้; Guest ใช้ข้อมูลใน memory
+- เก็บข้อมูลใน Supabase สำหรับผู้ใช้ที่ลงชื่อเข้าใช้; Guest เก็บข้อมูลในเบราว์เซอร์เครื่องนี้ ไม่ซิงก์ข้ามเครื่องและยังไม่ย้ายเข้าบัญชีอัตโนมัติ
 
 ### Gemini Food Scan
 
@@ -195,6 +195,12 @@ Frontend (React UI)
 
 ## Local Development
 
+### การตั้งค่าการแสดงผล
+
+เมนูโปรไฟล์มุมขวาบนแยก **ธีม** สำหรับสว่าง/มืด/ตามระบบ และ **ภาษา** สำหรับไทย/อังกฤษ ส่วน **ตั้งค่า** มีขนาดตัวอักษรและระดับการเคลื่อนไหว โดยวางออกจากระบบไว้ล่างสุด ทุกตัวเลือกมีผลทันทีและจำในเบราว์เซอร์นี้หลังรีเฟรช ไม่ต้องกดบันทึก ไม่ซิงก์ข้ามเครื่อง และไม่เปลี่ยนประวัติอาหารหรือโปรไฟล์ ปุ่มคืนค่าในหน้าตั้งค่ารีเซ็ตเฉพาะขนาดตัวอักษรและการเคลื่อนไหว ไม่เปลี่ยนธีมหรือภาษา
+
+ข้อความ UI อยู่ใน `frontend/src/lib/translations.ts` และแปล React output ก่อนแสดงผล โดยไม่แก้ DOM หรือข้อมูลที่ส่ง API; `RawText` ใช้กับชื่อผู้ใช้และข้อมูลอาหารเพื่อรักษาข้อความต้นฉบับ ชื่ออาหารใช้ชื่ออังกฤษเมื่อมีข้อมูล ส่วนอาหารส่วนตัวหรือหน่วยจากแหล่งข้อมูลที่ไม่มีคำแปลยังแสดงชื่อต้นฉบับ
+
 ### Supabase Setup
 
 1. รัน `supabase/schema.sql` ใน Supabase Dashboard → SQL Editor
@@ -229,7 +235,23 @@ $env:GEMINI_API_KEY = "YOUR_GEMINI_API_KEY"
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-หากเก็บค่าจริงไว้ใน `.env` ที่ project root ให้รัน `start_local.bat` จาก root เพื่อโหลด environment และเปิด backend, Vite frontend และ ngrok (ถ้าติดตั้งไว้) อัตโนมัติ หน้าเว็บ local อยู่ที่ `http://localhost:8443`
+### เปิดด้วย start_local บน Windows
+
+สร้าง `.env` ที่ project root จาก `.env.example` แล้วกรอกค่าจริง จากนั้นดับเบิลคลิก `start_local.bat` เพื่อ build โค้ดปัจจุบันด้วย Docker Compose รอทั้งสอง service พร้อมใช้งาน แล้วเปิด `http://localhost:3000` ต้องเปิด Docker Desktop ไว้ก่อน ไม่จำเป็นต้องติดตั้ง Node/Python บนเครื่องสำหรับโหมดนี้
+
+```powershell
+.\start_local.bat                       # Docker + build + เปิดเว็บ
+.\start_local.bat --no-browser          # รันโดยไม่เปิดเบราว์เซอร์
+.\start_local.bat --check               # ตรวจ .env / Docker โดยไม่เริ่ม service
+.\start_local.bat --stop                # หยุด Docker services เก็บข้อมูลเดิมไว้
+.\start_local.bat --native --check      # ตรวจ Node/Python สำหรับโหมด Native
+.\start_local.bat --native              # Python + Vite พร้อม reload
+.\start_local.bat --native --stop       # หยุดเฉพาะ Native processes ที่ launcher สร้าง
+```
+
+โหมด Native ใช้ Node 24.15+ (หรือ Node 22.22.2+/26+) และ Python 3.12+ สคริปต์ใช้ `.venv` ที่ root หรือสร้างใหม่ ติดตั้ง backend dependencies และรัน `npm ci` เมื่อยังไม่มี dependencies หรือ lockfile เปลี่ยน จากนั้นเปิด `http://127.0.0.1:8443` พร้อม backend ที่พอร์ต 8000 ตรวจ log ได้ใน `.local-run` ต้องหยุดโหมดเดิมก่อนเปลี่ยนโหมด เพราะใช้พอร์ต backend เดียวกัน
+
+ตัว launcher อ่านค่า `.env` โดยไม่แสดง key ใน console และไม่เปิด ngrok อัตโนมัติ `start_local.bat.txt` เป็นสำเนาของ `start_local.bat` สำหรับไฟล์เดิม
 
 API documentation อยู่ที่:
 
@@ -254,11 +276,13 @@ publishable key ถูกใช้โดย backend เท่านั้น; �
 จากนั้นรัน:
 
 ```powershell
-docker compose up --build -d
+docker compose up --build -d --wait
 ```
 
 - Frontend: `http://localhost:3000`
 - Backend: `http://localhost:8000`
+- Docker ใช้ Node 24 ในขั้น build และ Python 3.14 สำหรับ backend ตรวจ TypeScript ก่อน build frontend และรัน backend ด้วยผู้ใช้ที่ไม่ใช่ root
+- Health checks: backend `/health`, frontend `/healthz`; frontend เริ่มเมื่อ backend พร้อมแล้ว การตรวจนี้ยืนยันว่า service ทำงาน ไม่ได้ยืนยันว่า Supabase หรือ Gemini พร้อมให้บริการ
 - ตรวจสถานะด้วย `docker compose ps` และดู log ด้วย `docker compose logs -f`
 - Compose ตั้งชื่อ container ตาม project/service โดยอัตโนมัติ จึงไม่ล็อกชื่อเดียวกันข้าม project; หากรันหลายชุดพร้อมกัน ต้องกำหนด host ports ที่ไม่ซ้ำกัน (เช่น `3001:80` และ `8001:8000`) และปรับ `FRONTEND_ORIGINS` ให้ตรงกับ frontend port
 
@@ -293,7 +317,7 @@ API key ต้องอยู่ใน backend environment เท่านั้
 
 - ข้อมูลบัญชีผู้ใช้และ food logs จัดเก็บใน Supabase และอ่าน/เขียนตาม RLS
 - Frontend ไม่มี Supabase credentials/client หรือ session token; browser ส่ง HttpOnly cookies ให้ backend โดยอัตโนมัติ
-- Guest log อยู่เฉพาะใน memory ของ session; ข้อมูล log เก่าจาก localStorage จะถูกล้าง
+- Guest เก็บข้อมูลใน `nutrithai_guest_v1` พร้อมตรวจรูปแบบข้อมูลก่อนกู้คืน ออกจากโหมด Guest จะหยุดกู้คืนอัตโนมัติ แต่ยังกลับมาใช้ข้อมูลเดิมด้วยปุ่มทดลองใช้ได้ ข้อมูลอาจหายหากล้างข้อมูลเว็บไซต์ ใช้โหมดไม่ระบุตัวตน หรือพื้นที่เก็บข้อมูลเต็ม
 - รูปอาหารจะถูกส่งไปยัง backend และ Gemini เมื่อผู้ใช้กดวิเคราะห์
 - AI scan ต้องมี session ที่ยืนยันกับ Supabase; backend ตรวจ token ผ่าน Supabase JWKS ก่อนรับภาพ
 - ควรแจ้งผู้ใช้และขอ consent ก่อนส่งรูปไปยัง external AI service
@@ -301,7 +325,7 @@ API key ต้องอยู่ใน backend environment เท่านั้
 
 ## Current Limitations
 
-- ต้องรัน schema และจัดเตรียมรายการอาหารในตาราง Supabase `public.foods` ก่อนใช้การค้นหาอาหาร; frontend และโหมด Guest โหลด catalog ผ่าน backend API เท่านั้น
+- ต้องรัน schema และจัดเตรียมรายการอาหารในตาราง Supabase `public.foods` ก่อนใช้การค้นหาออนไลน์; หากโหลด catalog ไม่ได้ ยังเข้า Guest ดูประวัติ ใช้รายการเดิม และเพิ่มอาหารส่วนตัวได้ พร้อมปุ่มลองเชื่อมต่อใหม่
 - ต้องใส่ project URL และ key จริงใน environment ของ local/deployment
 - Supabase JWT สำหรับ Gemini endpoint ต้องใช้ signing key แบบ asymmetric (ES256 หรือ RS256) ที่เผยแพร่ผ่าน JWKS
 - ต้องตั้ง `GEMINI_API_KEY` เพื่อใช้ image scan

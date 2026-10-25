@@ -1,5 +1,6 @@
+import { RawText, useLocalizedView } from "../lib/i18n";
 import { displayInteger } from "../lib/display";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Food, FoodLog, MealType, FoodUnit, HealthProfile, FoodPreferences, FoodPreference, MealItem } from "../types";
 import FoodRecommendations from "./FoodRecommendations";
 import Icon from "./Icon";
@@ -36,6 +37,8 @@ const mealOptions: { value: MealType; label: string; icon: string }[] = [
   { value: "dinner", label: "เย็น", icon: "🌙" },
   { value: "snack", label: "ของว่าง", icon: "🍎" },
 ];
+const emptyFoods: Food[] = [];
+const emptyLogs: FoodLog[] = [];
 
 interface ScanResult {
   food: Food;
@@ -44,16 +47,18 @@ interface ScanResult {
 }
 
 function MacroPills({ food }: { food: Food }) {
-  return (
+  const { view } = useLocalizedView();
+  return view((
     <div className="flex gap-1.5 mt-1 flex-wrap">
       <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-400">{displayInteger(food.protein)}g โปรตีน</span>
       <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400">{displayInteger(food.carbs)}g คาร์บ</span>
       <span className="text-[10px] px-1.5 py-0.5 rounded bg-rose-500/15 text-rose-400">{displayInteger(food.fat)}g ไขมัน</span>
     </div>
-  );
+  ));
 }
 
-export default function FoodLogger({ onAddLog, isAuthenticated, foods, initialTab = "search", scanOnly = false, customFoods = [], onCreateCustomFood, logs = [], healthProfile, preferences = {}, onPreference, onAddBatch, recommendationsReady = true }: Props) {
+export default function FoodLogger({ onAddLog, isAuthenticated, foods, initialTab = "search", scanOnly = false, customFoods = emptyFoods, onCreateCustomFood, logs = emptyLogs, healthProfile, preferences = {}, onPreference, onAddBatch, recommendationsReady = true }: Props) {
+  const { view, locale, language } = useLocalizedView();
   const [draft, setDraft] = useState<MealItem[]>([]);
   const [batchLocked, setBatchLocked] = useState(false);
   const [tab, setTab] = useState<"search" | "scan" | "custom">(initialTab);
@@ -78,6 +83,22 @@ export default function FoodLogger({ onAddLog, isAuthenticated, foods, initialTa
   const [searchResults, setSearchResults] = useState<Food[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState("");
+  const [searchAttempt, setSearchAttempt] = useState(0);
+  const saving = useRef(false);
+  const pendingSave = useRef<{ log: FoodLog; requestId: string } | null>(null);
+  const [savePending, setSavePending] = useState(false);
+  const localFoods = Array.from(new Map([...foods, ...customFoods, ...logs.map(log => log.food)]
+    .map(food => [foodKey(food) ?? `${food.name}:${language === "en" ? food.name : food.nameTh}`, food])).values());
+  const recentFoods = Array.from(new Map([...logs].sort((a, b) => +new Date(b.loggedAt) - +new Date(a.loggedAt))
+    .map(log => [foodKey(log.food) ?? log.food.nameTh, log.food])).values()).slice(0, 6);
+  const counts = new Map<string, { food: Food; count: number }>();
+  logs.forEach(log => { const key = foodKey(log.food) ?? log.food.nameTh;
+    counts.set(key, { food: log.food, count: (counts.get(key)?.count ?? 0) + 1 }); });
+  const frequentFoods = [...counts.values()].sort((a, b) => b.count - a.count).slice(0, 6);
+  const previousLog = [...logs].filter(log => localDateKey(new Date(log.loggedAt)) < logDate)
+    .sort((a, b) => +new Date(b.loggedAt) - +new Date(a.loggedAt))[0];
+  const previousMeal = previousLog ? logs.filter(log => log.mealType === previousLog.mealType
+    && localDateKey(new Date(log.loggedAt)) === localDateKey(new Date(previousLog.loggedAt))) : [];
 
   useEffect(() => () => {
     if (scanPreview) URL.revokeObjectURL(scanPreview);
@@ -100,10 +121,12 @@ export default function FoodLogger({ onAddLog, isAuthenticated, foods, initialTa
         .then((results) => {
           if (active) setSearchResults(results);
         })
-        .catch((error: unknown) => {
+        .catch(() => {
           if (active) {
-            setSearchResults([]);
-            setSearchError(error instanceof Error ? error.message : "ค้นหารายการอาหารไม่สำเร็จ");
+            const normalized = search.toLocaleLowerCase();
+            setSearchResults(localFoods.filter(food => (category === "all" || food.category === category)
+              && `${language === "en" ? food.name : food.nameTh} ${food.name}`.toLocaleLowerCase().includes(normalized)).slice(0, 8));
+            setSearchError("ค้นหาออนไลน์ไม่ได้ กำลังแสดงรายการที่มีในเครื่อง คุณยังเพิ่มอาหารของฉันได้");
           }
         })
         .finally(() => {
@@ -115,11 +138,12 @@ export default function FoodLogger({ onAddLog, isAuthenticated, foods, initialTa
       active = false;
       window.clearTimeout(timer);
     };
-  }, [category, query, tab]);
+  }, [category, query, tab, searchAttempt, foods, customFoods, logs]);
 
   const results = query.trim() && tab === "search" ? searchResults : [];
 
   const handleSelect = (food: Food, suggestedServings = 1) => {
+    if (savePending || saving.current) return;
     setSelectedFood(food);
     setQuantity(String(Number(((food.servingSize ?? 1) * suggestedServings).toFixed(6))));
     setQuantityUnit(food.servingUnit ?? "portion");
@@ -182,22 +206,30 @@ export default function FoodLogger({ onAddLog, isAuthenticated, foods, initialTa
   };
 
   const handleAdd = async () => {
+    if (saving.current) return;
     const servingCount = Number(servings);
     if (!selectedFood || !validServings(servingCount)) {
       setSaveError("จำนวน serving ต้องมากกว่า 0 และไม่เกิน 100");
       return;
     }
+    saving.current = true;
     setIsSaving(true);
     setSaveError("");
     try {
-      await onAddLog({
-        id: `${Date.now()}`,
+      const requestId = pendingSave.current?.requestId ?? crypto.randomUUID();
+      const log = pendingSave.current?.log ?? {
+        id: requestId,
         food: selectedFood,
         mealType,
         servings: servingCount,
         quantity: Number(quantity), quantityUnit,
         loggedAt: new Date(`${logDate}T12:00:00`),
-      });
+      };
+      if (onAddBatch) {
+        pendingSave.current = { log, requestId }; setSavePending(true);
+        await onAddBatch([log], requestId);
+      } else await onAddLog(log);
+      pendingSave.current = null; setSavePending(false);
       setAdded(true);
       setSelectedFood(null);
       setScanResult(null);
@@ -209,15 +241,19 @@ export default function FoodLogger({ onAddLog, isAuthenticated, foods, initialTa
       setTimeout(() => setAdded(false), 2000);
     } catch (error) {
       setSaveError(error instanceof Error ? error.message : "บันทึกอาหารไม่สำเร็จ");
+      if (error && typeof error === "object" && "status" in error && [400, 401, 403, 404, 422].includes(Number(error.status))) {
+        pendingSave.current = null; setSavePending(false);
+      }
     } finally {
+      saving.current = false;
       setIsSaving(false);
     }
   };
 
-  return (
+  return view((
     <div className={scanOnly ? "soft-page ai-page" : "food-logger"}>
       {!scanOnly && draft.length > 0 && onAddBatch && <MealComposer items={draft} onChange={setDraft} onSave={onAddBatch} initialDate={logDate} initialMeal={mealType} onLockChange={setBatchLocked} onDone={() => { setDraft([]); setBatchLocked(false); setAdded(true); }} />}
-      <fieldset disabled={batchLocked} className="min-w-0 disabled:opacity-50">
+      <fieldset disabled={batchLocked || isSaving} aria-busy={isSaving} className="min-w-0 disabled:opacity-50">
       {saveError && !selectedFood && <p role="alert" className="text-sm text-rose-700">{saveError}</p>}
       {/* Header */}
       {scanOnly ? (
@@ -230,6 +266,7 @@ export default function FoodLogger({ onAddLog, isAuthenticated, foods, initialTa
           <label htmlFor="log-date" className="logger-date"><Icon name="clock" /><span>วันที่รับประทาน</span>
           <input
             id="log-date"
+            disabled={savePending}
             type="date"
             value={logDate}
             max={localDateKey(new Date())}
@@ -246,7 +283,7 @@ export default function FoodLogger({ onAddLog, isAuthenticated, foods, initialTa
           <button
             key={t}
             type="button"
-            disabled={isScanning}
+            disabled={isScanning || savePending}
             aria-pressed={tab === t}
             onClick={() => {
               setTab(t);
@@ -284,7 +321,7 @@ export default function FoodLogger({ onAddLog, isAuthenticated, foods, initialTa
           ))}
         </div>
       )}
-      {tab === "search" && foods.length === 0 && <div role="alert" className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-sm text-amber-800">ยังไม่มีข้อมูลอาหารใน catalog กรุณาตรวจสอบรายการอาหารใน Supabase</div>}
+      {tab === "search" && foods.length === 0 && <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-sm text-amber-800">รายการอาหารยังไม่พร้อม คุณเลือกอาหารที่เคยบันทึก หรือเพิ่มเองในแท็บ “อาหารของฉัน” ได้</div>}
 
       {/* Search Tab */}
       {tab === "search" && (
@@ -294,6 +331,7 @@ export default function FoodLogger({ onAddLog, isAuthenticated, foods, initialTa
             <label htmlFor="food-search" className="sr-only">ค้นหาอาหารภาษาไทยหรืออังกฤษ</label>
             <input
               id="food-search"
+              disabled={savePending}
               type="text"
               value={query}
               onChange={(e) => { setQuery(e.target.value); setSelectedFood(null); }}
@@ -305,6 +343,7 @@ export default function FoodLogger({ onAddLog, isAuthenticated, foods, initialTa
               <button
                 type="button"
                 aria-label="ล้างคำค้นหา"
+                disabled={savePending}
                 onClick={() => { setQuery(""); setSelectedFood(null); }}
                 className="logger-clear-search"
               >
@@ -314,7 +353,7 @@ export default function FoodLogger({ onAddLog, isAuthenticated, foods, initialTa
           </div>
 
           {isSearching && <div role="status" className="py-3 text-center text-sm text-[#718078]">กำลังค้นหาในฐานข้อมูล...</div>}
-          {searchError && <div role="alert" className="rounded-xl bg-rose-50 p-3 text-sm text-rose-800">ค้นหารายการอาหารไม่สำเร็จ: {searchError}</div>}
+          {searchError && <div role="alert" className="service-notice"><span>{searchError}</span><button type="button" disabled={isSearching || savePending} onClick={() => setSearchAttempt(value => value + 1)}>ลองอีกครั้ง</button></div>}
 
           {results.length > 0 && !selectedFood && !isSearching && (
             <div className="logger-results space-y-2" aria-label="ผลการค้นหาอาหาร">
@@ -327,8 +366,8 @@ export default function FoodLogger({ onAddLog, isAuthenticated, foods, initialTa
                   <div className="flex min-w-0 flex-1 items-center gap-3">
                     <span aria-hidden="true" className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#f3f0ea] text-xl"><Icon name={food.category === "drink" ? "drop" : food.category === "dessert" ? "grain" : "bowl"} /></span>
                     <div className="min-w-0">
-                      <div className="truncate text-sm font-semibold text-[#1a2820]">{food.nameTh || food.name}</div>
-                      {food.nameTh && food.nameTh !== food.name && <div className="truncate text-xs text-[#718078]">{food.name}</div>}
+                      <div className="truncate text-sm font-semibold text-[#1a2820]"><RawText>{language === "en" ? food.name : (food.nameTh || food.name)}</RawText></div>
+                      {food.nameTh && food.nameTh !== food.name && <div className="truncate text-xs text-[#718078]"><RawText>{food.name}</RawText></div>}
                     </div>
                   </div>
                   <div className="shrink-0 text-right">
@@ -346,13 +385,26 @@ export default function FoodLogger({ onAddLog, isAuthenticated, foods, initialTa
           )}
 
           {!query.trim() && !selectedFood && (
+            <section className="logger-shortcuts" aria-label="ทางลัดบันทึกอาหาร">
+              <h2>บันทึกได้เร็วขึ้น</h2>
+              {recentFoods.length === 0 ? <p>เมื่อบันทึกอาหาร รายการล่าสุดและอาหารที่กินบ่อยจะปรากฏที่นี่</p> : <>
+                <h3>รายการล่าสุด</h3><div className="shortcut-foods">{recentFoods.map((food, i) => <button key={i} type="button" onClick={() => handleSelect(food)}><RawText>{food.nameTh || food.name}</RawText><small>{basisLabel(food)} · {displayInteger(food.calories)} kcal</small></button>)}</div>
+                <h3>อาหารที่กินบ่อย</h3><div className="shortcut-foods">{frequentFoods.map(({ food, count }, i) => <button key={i} type="button" onClick={() => handleSelect(food)}><RawText>{food.nameTh || food.name}</RawText><small>บันทึก {count} ครั้ง · {basisLabel(food)}</small></button>)}</div>
+              </>}
+              {onAddBatch && previousLog && previousMeal.length > 0 && <button className="repeat-meal" type="button" disabled={draft.length + previousMeal.length > 30} onClick={() => { setMealType(previousLog.mealType); setDraft([...draft, ...previousMeal.map(log => ({ food: log.food, servings: log.servings }))]); }}>
+                ใช้มื้อเดิมจาก {new Date(previousLog.loggedAt).toLocaleDateString(locale, { day: "numeric", month: "short" })} · {mealOptions.find(meal => meal.value === previousLog.mealType)?.label} ({previousMeal.length} รายการ)
+                <small>ตรวจปริมาณ วันที่ และมื้อ ก่อนบันทึก</small>
+              </button>}
+            </section>
+          )}
+          {!query.trim() && !selectedFood && (
             <div className="logger-discovery">
             <div className="logger-recommendations">
             {!recommendationsReady && <p className="text-sm text-amber-800">ยังโหลดความชอบไม่ได้ จึงพักคำแนะนำไว้ก่อน</p>}
             {healthProfile && recommendationsReady && <FoodRecommendations foods={foods} customFoods={customFoods} logs={logs} profile={healthProfile} date={logDate} meal={mealType} category={category} onMealChange={setMealType} onSelect={handleSelect} preferences={preferences} onPreference={onPreference} onPlan={onAddBatch ? items => { if (draft.length + items.length > 30) { setSaveError("เลือกได้ไม่เกิน 30 รายการต่อชุด"); return; } setDraft([...draft, ...items]); } : undefined} />}
             {onPreference && Object.keys(preferences).length > 0 && <details className="rounded-xl border bg-white p-3">
               <summary className="cursor-pointer text-sm">จัดการความชอบและอาหารที่ซ่อน</summary>
-              {[...foods, ...customFoods].filter(food => preferences[foodKey(food) ?? ""]).map(food => <div key={foodKey(food)} className="mt-3"><p className="mb-1 text-sm">{food.nameTh}</p><FoodPreferenceButtons food={food} value={preferences[foodKey(food)!]} onChange={onPreference} /></div>)}
+              {[...foods, ...customFoods].filter(food => preferences[foodKey(food) ?? ""]).map(food => <div key={foodKey(food)} className="mt-3"><p className="mb-1 text-sm"><RawText>{language === "en" ? food.name : food.nameTh}</RawText></p><FoodPreferenceButtons food={food} value={preferences[foodKey(food)!]} onChange={onPreference} /></div>)}
             </details>}
             </div>
             <section className="logger-catalog" aria-label="รายการอาหาร">
@@ -367,8 +419,8 @@ export default function FoodLogger({ onAddLog, isAuthenticated, foods, initialTa
                   <div className="flex min-w-0 flex-1 items-center gap-3">
                     <span aria-hidden="true" className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#f3f0ea] text-xl"><Icon name={food.category === "drink" ? "drop" : food.category === "dessert" ? "grain" : "bowl"} /></span>
                     <div className="min-w-0">
-                      <div className="truncate text-sm font-semibold text-[#1a2820]">{food.nameTh || food.name}</div>
-                      {food.nameTh && food.nameTh !== food.name && <div className="truncate text-xs text-[#718078]">{food.name}</div>}
+                      <div className="truncate text-sm font-semibold text-[#1a2820]"><RawText>{food.nameTh || food.name}</RawText></div>
+                      {food.nameTh && food.nameTh !== food.name && <div className="truncate text-xs text-[#718078]"><RawText>{food.name}</RawText></div>}
                     </div>
                   </div>
                   <div className="shrink-0 text-right">
@@ -386,7 +438,7 @@ export default function FoodLogger({ onAddLog, isAuthenticated, foods, initialTa
       )}
 
       {tab === "custom" && <div className="logger-custom space-y-4">
-        <p className="text-sm text-[#596c5c]">{isAuthenticated ? "อาหารส่วนตัวจะเก็บในบัญชีของคุณและเลือกใช้ซ้ำได้" : "โหมดผู้เยี่ยมชม: อาหารส่วนตัวจะหายเมื่อรีเฟรช"}</p>
+        <p className="text-sm text-[#596c5c]">{isAuthenticated ? "อาหารส่วนตัวจะเก็บในบัญชีของคุณและเลือกใช้ซ้ำได้" : "โหมดผู้เยี่ยมชม: เก็บอาหารส่วนตัวไว้ในเบราว์เซอร์เครื่องนี้ และเลือกใช้ซ้ำได้"}</p>
         <CustomFoodForm onSave={async food => {
           const saved = onCreateCustomFood ? await onCreateCustomFood(food) : food;
           handleSelect(saved);
@@ -394,7 +446,7 @@ export default function FoodLogger({ onAddLog, isAuthenticated, foods, initialTa
         {customFoods.length > 0 && <section aria-label="รายการอาหารส่วนตัว" className="space-y-2">
           <h3 className="font-semibold">อาหารส่วนตัวที่บันทึกไว้</h3>
           {customFoods.map((food, i) => <button key={food.customId ?? i} type="button" onClick={() => handleSelect(food)} className="flex w-full justify-between gap-3 rounded-xl border bg-white p-3 text-left">
-            <span>{food.nameTh}</span><span className="text-xs text-[#596c5c]">{displayInteger(food.calories)} kcal / {basisLabel(food)}</span>
+            <span><RawText>{language === "en" ? food.name : food.nameTh}</RawText></span><span className="text-xs text-[#596c5c]">{displayInteger(food.calories)} kcal / {basisLabel(food)}</span>
           </button>)}
         </section>}
       </div>}
@@ -469,8 +521,8 @@ export default function FoodLogger({ onAddLog, isAuthenticated, foods, initialTa
             <div className="space-y-3 rounded-[22px] border border-[#c5d8c7] bg-white p-5">
               <div className="flex items-start justify-between">
                 <div>
-                  <div className="text-base font-bold text-[#1a2820]">{scanResult.food.nameTh}</div>
-                  <div className="text-xs text-[#718078]">{scanResult.food.name}</div>
+                  <div className="text-base font-bold text-[#1a2820]"><RawText>{language === "en" ? scanResult.food.name : scanResult.food.nameTh}</RawText></div>
+                  <div className="text-xs text-[#718078]"><RawText>{scanResult.food.name}</RawText></div>
                 </div>
                 <div className="text-right">
                   <div className="text-lg font-bold text-emerald-400" style={{ fontFamily: "Outfit, sans-serif" }}>
@@ -486,6 +538,7 @@ export default function FoodLogger({ onAddLog, isAuthenticated, foods, initialTa
               <button
                 type="button"
                 onClick={() => setIsEditingScan((editing) => !editing)}
+                disabled={savePending}
                 className="text-xs text-emerald-400 hover:text-emerald-300 font-semibold"
               >
                 {isEditingScan ? "ยกเลิกการแก้ไข" : "แก้ไขผลวิเคราะห์"}
@@ -569,6 +622,7 @@ export default function FoodLogger({ onAddLog, isAuthenticated, foods, initialTa
                 setScanError("");
               }}
               className="w-full py-3 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-sm font-medium transition-all"
+              disabled={savePending}
             >
               สแกนใหม่
             </button>
@@ -579,6 +633,7 @@ export default function FoodLogger({ onAddLog, isAuthenticated, foods, initialTa
       {/* Add to Log Panel */}
       {selectedFood && (
         <div className="logger-selection space-y-4 rounded-[22px] border border-[#e5e2da] bg-white p-5 shadow-sm">
+          <fieldset disabled={isSaving || savePending} className="min-w-0 space-y-4">
           <div className="text-xs font-semibold uppercase tracking-wider text-[#596c5c]">บันทึกอาหาร</div>
           <FoodPreferenceButtons food={selectedFood} value={preferences[foodKey(selectedFood) ?? ""]} onChange={onPreference} />
           {preferences[foodKey(selectedFood) ?? ""] === "avoid" && <p className="text-sm text-amber-800">คุณตั้งว่าไม่กินอาหารนี้ ระบบจะไม่แนะนำ แต่ยังเลือกบันทึกด้วยตัวเองได้</p>}
@@ -587,8 +642,8 @@ export default function FoodLogger({ onAddLog, isAuthenticated, foods, initialTa
           <div className="logger-selected-summary flex items-center gap-3 rounded-2xl bg-[#f8f5ef] p-4">
             <span aria-hidden="true" className="grid h-12 w-12 shrink-0 place-items-center rounded-[14px] bg-white text-xl">{selectedFood.category === "drink" ? "♧" : selectedFood.category === "dessert" ? "✿" : "♨"}</span>
             <div className="min-w-0 flex-1">
-              <div className="truncate text-base font-bold text-[#1a2820]">{selectedFood.nameTh}</div>
-              <div className="truncate text-xs text-[#718078]">{selectedFood.name}</div>
+              <div className="truncate text-base font-bold text-[#1a2820]"><RawText>{language === "en" ? selectedFood.name : selectedFood.nameTh}</RawText></div>
+              <div className="truncate text-xs text-[#718078]"><RawText>{selectedFood.name}</RawText></div>
               <div className="mt-1 text-xs text-[#596c5c]">ต่อ {basisLabel(selectedFood)}</div>
             </div>
             <div className="shrink-0 text-right">
@@ -598,7 +653,7 @@ export default function FoodLogger({ onAddLog, isAuthenticated, foods, initialTa
           </div>
 
           <div className="rounded-2xl border border-[#edf4ee] p-4">
-            <div className="mb-3 text-sm font-semibold text-[#1a2820]">ข้อมูลโภชนาการ (ต่อ {basisLabel(selectedFood)})</div>
+            <div className="mb-3 text-sm font-semibold text-[#1a2820]">ข้อมูลโภชนาการตามปริมาณที่เลือก</div>
             <div className="grid grid-cols-4 gap-2 text-center">
               {[
                 { label: "แคลอรี", value: selectedFood.calories, unit: "kcal", color: "text-[#2d6e3e]" },
@@ -607,7 +662,7 @@ export default function FoodLogger({ onAddLog, isAuthenticated, foods, initialTa
                 { label: "ไขมัน", value: selectedFood.fat, unit: "g", color: "text-[#66845d]" },
               ].map((item) => (
                 <div key={item.label} className="min-w-0">
-                  <div className={`text-base font-extrabold sm:text-lg ${item.color}`}>{displayInteger(item.value)}</div>
+                  <div className={`text-base font-extrabold sm:text-lg ${item.color}`}>{displayInteger(validServings(servings) ? item.value * servings : 0)}</div>
                   <div className="text-[10px] text-[#718078] sm:text-xs">{item.unit}</div>
                   <div className="text-[10px] text-[#596c5c] sm:text-xs">{item.label}</div>
                 </div>
@@ -640,6 +695,8 @@ export default function FoodLogger({ onAddLog, isAuthenticated, foods, initialTa
           {!scanOnly && onAddBatch && <button type="button" disabled={!validServings(servings) || draft.length >= 30} onClick={() => { setDraft([...draft, { food: selectedFood, servings }]); setSelectedFood(null); setQuery(""); }} className="w-full rounded-xl border border-[#2d6e3e] p-3 font-semibold text-[#2d6e3e] disabled:opacity-50">เพิ่มในชุดมื้อ ({draft.length}/30)</button>}
           {scanOnly && <label className="block text-sm">วันที่รับประทาน<input type="date" required max={localDateKey(new Date())} value={logDate} onChange={e => setLogDate(e.target.value)} className="ml-2 rounded-lg border p-2" /></label>}
 
+          </fieldset>
+          {savePending && !isSaving && <p role="status" className="text-sm text-amber-800">ยังยืนยันผลบันทึกไม่ได้ กดลองบันทึกอีกครั้งเพื่อยืนยันรายการเดิมโดยไม่เพิ่มซ้ำ หากออกจากหน้านี้ ให้ตรวจประวัติก่อนบันทึกใหม่</p>}
           <div className="logger-save-bar sticky bottom-[76px] z-20 -mx-2 flex items-center justify-between gap-3 rounded-[18px] border border-[#e5e2da] bg-white/95 p-3 shadow-lg backdrop-blur md:bottom-4">
             <div>
               <div className="text-xs text-[#718078]">รวม</div>
@@ -651,7 +708,7 @@ export default function FoodLogger({ onAddLog, isAuthenticated, foods, initialTa
               disabled={isSaving || !validServings(servings) || !logDate || logDate > localDateKey(new Date())}
               className="min-h-12 flex-1 rounded-[14px] bg-[#2d6e3e] px-4 text-sm font-semibold text-white transition-colors hover:bg-[#245a33] active:scale-[0.98] disabled:opacity-50"
             >
-              {isSaving ? "กำลังบันทึก..." : "บันทึกอาหาร"}
+              {isSaving ? "กำลังบันทึก..." : savePending ? "ลองบันทึกอีกครั้ง" : "บันทึกอาหาร"}
             </button>
           </div>
         </div>
@@ -664,5 +721,5 @@ export default function FoodLogger({ onAddLog, isAuthenticated, foods, initialTa
         </div>
       )}
     </div>
-  );
+  ));
 }

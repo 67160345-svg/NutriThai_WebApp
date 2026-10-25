@@ -25,7 +25,7 @@ export type Gender = "male" | "female";
 export type ActivityLevel = "sedentary" | "light" | "moderate" | "active";
 export type Goal = "lose_weight" | "maintain" | "gain_muscle";
 export type MealType = "breakfast" | "lunch" | "dinner" | "snack";
-export type Page = "dashboard" | "logger" | "history" | "ai-scan" | "advice";
+export type Page = "dashboard" | "logger" | "history" | "ai-scan" | "advice" | "theme" | "language" | "settings";
 
 export interface HealthProfile {
   gender: Gender;

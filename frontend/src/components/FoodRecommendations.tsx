@@ -1,3 +1,4 @@
+import { RawText, useLocalizedView } from "../lib/i18n";
 import { displayInteger } from "../lib/display";
 import { useMemo, useState } from "react";
 import type { Food, FoodLog, HealthProfile, MealType, FoodPreferences, FoodPreference, MealItem } from "../types";
@@ -22,6 +23,7 @@ interface Props {
 }
 
 export default function FoodRecommendations(props: Props) {
+  const { view } = useLocalizedView();
   const [mode, setMode] = useState<RecommendationMode>("balanced");
   const [focus, setFocus] = useState<NutritionFocus>("balanced");
   const [showAll, setShowAll] = useState(false);
@@ -35,7 +37,7 @@ export default function FoodRecommendations(props: Props) {
     fat: sum.fat + item.food.fat * item.servings }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
   const goalLabel = { lose_weight: "ลดน้ำหนัก", maintain: "รักษาน้ำหนัก", gain_muscle: "เพิ่มกล้ามเนื้อ" }[profile.goal];
   const visibleRecommendations = showAll ? result.recommendations : result.recommendations.slice(0, 3);
-  return <section aria-label="อาหารแนะนำสำหรับคุณ" className="food-recommendations">
+  return view(<section aria-label="อาหารแนะนำสำหรับคุณ" className="food-recommendations">
     <div className="recommendation-heading"><Icon name="leaf" /><div>
       <h3 className="font-bold text-[#1a2820]">แนะนำสำหรับมื้อถัดไป</h3>
       <p>ไอเดียที่เข้ากับเป้าหมายของคุณ เลือกแล้วปรับปริมาณได้</p>
@@ -72,7 +74,7 @@ export default function FoodRecommendations(props: Props) {
     {mode !== "meal" && <div className="recommendation-list">
       {visibleRecommendations.map((item, index) => <article key={foodKey(item.food)} className="recommendation-item">
         <div className="recommendation-item-top"><span className="recommendation-number">{String(index + 1).padStart(2, "0")}</span><span className="recommendation-kcal"><strong>{Math.round(item.food.calories * item.servings).toLocaleString()}</strong> kcal</span></div>
-        <h4>{item.food.nameTh || item.food.name}</h4>
+        <h4><RawText>{item.food.nameTh || item.food.name}</RawText></h4>
         <p className="recommendation-portion">{consumedLabel(item.food, item.servings)}</p>
         <button type="button" onClick={() => onSelect(item.food, item.servings)} className="recommendation-select" aria-label={`เลือก ${item.food.nameTh || item.food.name}`}>เลือกอาหารนี้ <Icon name="arrow" /></button>
         <details className="recommendation-food-details"><summary>โภชนาการและเหตุผลที่แนะนำ</summary><div>
@@ -86,12 +88,12 @@ export default function FoodRecommendations(props: Props) {
     {mode !== "meal" && !result.recommendations.length && <p className="text-sm text-[#596c5c]">ยังไม่มีรายการที่ประเมินได้ในเงื่อนไขนี้ ลองเปลี่ยนแนวทางหรือเลือกจากรายการอาหารด้านล่าง</p>}
     {mode === "meal" && <div className="recommendation-meal rounded-xl border border-[#c5d8c7] bg-white p-3">
       <h4 className="font-semibold">ไอเดียชุดมื้ออาหาร</h4>
-      {plan.length ? <><ul className="my-2 space-y-1 text-sm">{plan.map(item => <li key={foodKey(item.food)}>{item.food.nameTh || item.food.name} · {consumedLabel(item.food, item.servings)}</li>)}</ul>
+      {plan.length ? <><ul className="my-2 space-y-1 text-sm">{plan.map(item => <li key={foodKey(item.food)}><RawText>{item.food.nameTh || item.food.name}</RawText> · {consumedLabel(item.food, item.servings)}</li>)}</ul>
         <p className="text-sm">รวม {Math.round(planTotals.calories)} kcal · โปรตีน {displayInteger(planTotals.protein)} · คาร์บ {displayInteger(planTotals.carbs)} · ไขมัน {displayInteger(planTotals.fat)} กรัม</p>
         <p className="mt-1 text-xs text-[#596c5c]">ปรับปริมาณก่อนบันทึกได้ ชุดนี้เป็นไอเดียจับคู่จากข้อมูลที่มี</p>
         {onPlan && <button type="button" onClick={() => onPlan(plan)} className="mt-2 rounded-xl bg-[#2d6e3e] px-3 py-2 text-sm text-white">เลือกชุดนี้และปรับปริมาณ</button>}</>
         : <p className="mt-1 text-xs text-[#596c5c]">ยังไม่มีคู่ที่เหมาะกับกรอบมื้อและหมวดที่เลือก ลองเปลี่ยนมื้อ หมวดอาหาร หรือแนวทางแนะนำ</p>}
     </div>}
     <p className="recommendation-footnote">ปริมาณเป็นจุดเริ่มต้น ปรับให้เหมาะกับคุณก่อนบันทึกได้</p>
-  </section>;
+  </section>);
 }

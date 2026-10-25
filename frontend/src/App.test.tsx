@@ -190,14 +190,25 @@ describe("app session and navigation flows", () => {
     expect(await screen.findByRole("heading", { name: "Mock sign in" })).toBeTruthy();
   });
 
-  it("reports Supabase catalog errors rather than using local guest food data", async () => {
+  it("allows guest onboarding during an outage and retries the catalog without losing guest logs", async () => {
     appMocks.readFoods.mockRejectedValueOnce(new Error("Supabase unavailable"));
     render(<App />);
     await screen.findByRole("heading", { name: "Mock sign in" });
 
     fireEvent.click(screen.getByRole("button", { name: "Continue guest" }));
-    expect((await screen.findByRole("alert")).textContent).toContain("โหลดรายการอาหารไม่สำเร็จ: Supabase unavailable");
-    expect(screen.getByRole("heading", { name: "Mock sign in" })).toBeTruthy();
+    expect((await screen.findByRole("alert")).textContent).toContain("ระบบข้อมูลอาหารไม่พร้อมใช้งานชั่วคราว");
+    fireEvent.click(await screen.findByRole("button", { name: "Complete profile" }));
+    fireEvent.click(screen.getByRole("button", { name: "Go logger" }));
+    expect(screen.getByText("Food catalog: 0")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Add log" }));
+    fireEvent.click(screen.getByRole("button", { name: "ลองอีกครั้ง" }));
+    expect(await screen.findByText("Food catalog: 1")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Go dashboard" }));
+    expect(await screen.findByText("Log count: 1")).toBeTruthy();
+    cleanup();
+    render(<App />);
+    expect(await screen.findByText("Log count: 1")).toBeTruthy();
+    expect(screen.queryByText("Mock profile setup")).toBeNull();
   });
 
   it("restores an authenticated session and handles API loading errors", async () => {

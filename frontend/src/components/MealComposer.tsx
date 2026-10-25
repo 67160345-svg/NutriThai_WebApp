@@ -1,3 +1,4 @@
+import { RawText, useLocalizedView } from "../lib/i18n";
 import { displayInteger } from "../lib/display";
 import { useState } from "react";
 import type { FoodLog, MealItem, MealType } from "../types";
@@ -10,6 +11,7 @@ export default function MealComposer({ items, onChange, onSave, onDone, initialD
   initialDate: string; initialMeal: MealType;
   onLockChange?: (locked: boolean) => void;
 }) {
+  const { view, language } = useLocalizedView();
   const [date, setDate] = useState(initialDate);
   const [meal, setMeal] = useState(initialMeal);
   const [busy, setBusy] = useState(false);
@@ -19,7 +21,7 @@ export default function MealComposer({ items, onChange, onSave, onDone, initialD
   const locked = busy || submitted !== null;
   const total = items.reduce((sum, item) => sum + item.food.calories * item.servings, 0);
   const valid = items.length > 0 && items.length <= 30 && items.every(item => validServings(item.servings)) && date && date <= localDateKey(new Date());
-  return <section aria-label="ชุดมื้ออาหาร" className="my-4 space-y-3 rounded-2xl border border-[#b7cdb9] bg-white p-4">
+  return view(<section aria-label="ชุดมื้ออาหาร" className="my-4 space-y-3 rounded-2xl border border-[#b7cdb9] bg-white p-4">
     <h3 className="font-bold">ชุดมื้ออาหาร ({items.length}/30)</h3>
     <fieldset disabled={locked} className="space-y-3 disabled:opacity-60">
       <div className="flex flex-wrap gap-3">
@@ -27,9 +29,9 @@ export default function MealComposer({ items, onChange, onSave, onDone, initialD
         <label>มื้อของชุดอาหาร<select value={meal} onChange={e => setMeal(e.target.value as MealType)} className="block rounded-lg border p-2"><option value="breakfast">เช้า</option><option value="lunch">กลางวัน</option><option value="dinner">เย็น</option><option value="snack">ของว่าง</option></select></label>
       </div>
       {items.map((item, index) => <div key={index} className="flex flex-wrap items-center gap-2 rounded-xl bg-[#f8f5ef] p-3">
-        <div className="min-w-0 flex-1"><span className="block font-medium">{item.food.nameTh}</span><span className="text-xs">{consumedLabel(item.food, item.servings)} · {Math.round(item.food.calories * item.servings)} kcal</span></div>
-        <label className="text-xs">ปริมาณ {item.food.nameTh}<input aria-label={`ปริมาณชุด ${index + 1}`} type="number" step="any" min="0.001" value={Number.isFinite(item.servings) ? Number((item.servings * (item.food.servingSize ?? 1)).toFixed(3)) : ""} onChange={e => onChange(items.map((row, i) => i === index ? { ...row, servings: Number(e.target.value) / (row.food.servingSize ?? 1) } : row))} className="block w-24 rounded border p-2" /></label>
-        <button type="button" aria-label={`นำ ${item.food.nameTh} ออกจากชุด`} onClick={() => onChange(items.filter((_, i) => i !== index))}>นำออก</button>
+        <div className="min-w-0 flex-1"><span className="block font-medium"><RawText>{language === "en" ? item.food.name : item.food.nameTh}</RawText></span><span className="text-xs">{consumedLabel(item.food, item.servings)} · {Math.round(item.food.calories * item.servings)} kcal</span></div>
+        <label className="text-xs">ปริมาณ <RawText>{language === "en" ? item.food.name : item.food.nameTh}</RawText><input aria-label={`ปริมาณชุด ${index + 1}`} type="number" step="any" min="0.001" value={Number.isFinite(item.servings) ? Number((item.servings * (item.food.servingSize ?? 1)).toFixed(3)) : ""} onChange={e => onChange(items.map((row, i) => i === index ? { ...row, servings: Number(e.target.value) / (row.food.servingSize ?? 1) } : row))} className="block w-24 rounded border p-2" /></label>
+        <button type="button" aria-label={`นำ ${language === "en" ? item.food.name : item.food.nameTh} ออกจากชุด`} onClick={() => onChange(items.filter((_, i) => i !== index))}>นำออก</button>
       </div>)}
     </fieldset>
     <p className="font-semibold">รวมชุด {Number.isFinite(total) ? Math.round(total) : 0} kcal · โปรตีน {displayInteger(items.reduce((sum, item) => sum + item.food.protein * item.servings, 0))} g</p>
@@ -45,5 +47,5 @@ export default function MealComposer({ items, onChange, onSave, onDone, initialD
         if (e instanceof Error && "status" in e && typeof e.status === "number" && [400, 401, 403, 404, 422].includes(e.status)) { setSubmitted(null); setRequestId(null); onLockChange?.(false); }
       } finally { setBusy(false); }
     }}>{busy ? "กำลังบันทึกชุดมื้อ..." : "บันทึกชุดมื้อทั้งหมด"}</button>
-  </section>;
+  </section>);
 }

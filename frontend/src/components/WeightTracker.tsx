@@ -1,3 +1,4 @@
+import { useLocalizedView } from "../lib/i18n";
 import { displayInteger } from "../lib/display";
 import { useState } from "react";
 import type { WeightLog } from "../types";
@@ -8,6 +9,7 @@ export default function WeightTracker({ weights, start, end, onSave, onDelete }:
   weights: WeightLog[]; start: string; end: string;
   onSave?: (weight: WeightLog) => Promise<void>; onDelete?: (date: string) => Promise<void>;
 }) {
+  const { view } = useLocalizedView();
   const [date, setDate] = useState(localDateKey(new Date()));
   const [value, setValue] = useState("");
   const [busy, setBusy] = useState(false);
@@ -18,7 +20,7 @@ export default function WeightTracker({ weights, start, end, onSave, onDelete }:
   const max = Math.max(...entries.map(row => row.weightKg)) + 1;
   const span = Math.max(86400000, new Date(`${end}T12:00:00`).getTime() - new Date(`${start}T12:00:00`).getTime());
   const points = entries.map(row => ({ ...row, x: 25 + (new Date(`${row.measuredOn}T12:00:00`).getTime() - new Date(`${start}T12:00:00`).getTime()) / span * 550, y: 160 - (row.weightKg - min) / (max - min) * 130 }));
-  return <section aria-label="บันทึกและแนวโน้มน้ำหนัก" className="weight-tracker my-5 space-y-3 rounded-[22px] border bg-white p-5">
+  return view(<section aria-label="บันทึกและแนวโน้มน้ำหนัก" className="weight-tracker my-5 space-y-3 rounded-[22px] border bg-white p-5">
     <h2 className="font-bold"><Icon name="chart" /> น้ำหนักและแนวโน้ม</h2>
     <p className="text-xs text-[#596c5c]">หนึ่งค่าต่อวัน บันทึกวันที่เดิมเพื่อแก้ไข น้ำหนักที่บันทึกไม่เปลี่ยนเป้าพลังงานในโปรไฟล์อัตโนมัติ</p>
     {onSave && <form className="flex flex-wrap items-end gap-3" onSubmit={async e => {
@@ -42,5 +44,5 @@ export default function WeightTracker({ weights, start, end, onSave, onDelete }:
         {onDelete && <button disabled={busy} type="button" onClick={async () => { setBusy(true); setError(""); setMessage(""); try { await onDelete(row.measuredOn); setMessage("ลบน้ำหนักแล้ว"); } catch (e) { setError(e instanceof Error ? e.message : "ลบไม่สำเร็จ"); } finally { setBusy(false); } }}>ลบ {row.measuredOn}</button>}
       </li>)}</ul></details>
     </> : <p className="text-sm text-[#596c5c]">ยังไม่มีน้ำหนักในช่วงเวลาที่เลือก</p>}
-  </section>;
+  </section>);
 }

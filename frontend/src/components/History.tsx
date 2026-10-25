@@ -1,3 +1,4 @@
+import { RawText, useLocalizedView } from "../lib/i18n";
 import FoodLogEditor from "./FoodLogEditor";
 import PageHeading from "./PageHeading";
 import Icon from "./Icon";
@@ -24,8 +25,8 @@ const mealGroups: { id: MealType; label: string; icon: string }[] = [
   { id: "snack", label: "ของว่าง", icon: "♧" },
 ];
 
-const formatDate = (value: string) =>
-  new Date(`${value}T12:00:00`).toLocaleDateString("th-TH", {
+const formatDate = (value: string, locale: string) =>
+  new Date(`${value}T12:00:00`).toLocaleDateString(locale, {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -39,6 +40,7 @@ function shiftDate(value: string, days: number) {
 }
 
 export default function History({ logs, onRemoveLog, onUpdateServings, onUpdateLog, customFoods = [], onCopyMeal }: Props) {
+  const { view, locale, language } = useLocalizedView();
   const [copyItems, setCopyItems] = useState<FoodLog[] | null>(null);
   const availableDates = useMemo(
     () => Array.from(new Set(logs.map((log) => localDateKey(new Date(log.loggedAt))))).sort(),
@@ -53,7 +55,7 @@ export default function History({ logs, onRemoveLog, onUpdateServings, onUpdateL
   const totals = getTotals(selectedLogs);
   const maxDate = localDateKey(new Date());
 
-  return (
+  return view((
     <div className="soft-page history-page">
       <PageHeading eyebrow="EVERY MEAL TELLS A STORY" title="ประวัติอาหาร" description="ย้อนดูแต่ละมื้อ แล้วค่อย ๆ รู้จักการกินของตัวเอง" />
       {copyItems && onCopyMeal && <CopyMealForm key={copyItems.map(item => item.id).join(",")} items={copyItems} onCopy={onCopyMeal} onDone={date => { setSelectedDate(date); setCopyItems(null); }} />}
@@ -103,7 +105,7 @@ export default function History({ logs, onRemoveLog, onUpdateServings, onUpdateL
             onClick={() => setSelectedDate(date)}
             className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold ${date === selectedDate ? "border-[#2d6e3e] bg-[#2d6e3e] text-white" : "border-[#e5e2da] bg-white text-[#596c5c]"}`}
           >
-            {new Date(`${date}T12:00:00`).toLocaleDateString("th-TH", { day: "numeric", month: "short" })}
+            {new Date(`${date}T12:00:00`).toLocaleDateString(locale, { day: "numeric", month: "short" })}
           </button>
         ))}
       </div>
@@ -127,7 +129,7 @@ export default function History({ logs, onRemoveLog, onUpdateServings, onUpdateL
         </div>
       </section>
 
-      <h2 className="mb-4 text-base font-semibold text-[#1a2820]">{formatDate(selectedDate)}</h2>
+      <h2 className="mb-4 text-base font-semibold text-[#1a2820]">{formatDate(selectedDate, locale)}</h2>
       {mealGroups.map((meal) => {
         const items = selectedLogs.filter((log) => log.mealType === meal.id);
         if (!items.length) return null;
@@ -143,7 +145,7 @@ export default function History({ logs, onRemoveLog, onUpdateServings, onUpdateL
               <div key={log.id} className="history-food-row flex items-center gap-3 border-b border-[#edf4ee] px-4 py-3 last:border-0">
                 <span aria-hidden="true" className="grid h-11 w-11 shrink-0 place-items-center rounded-[14px] bg-[#f3f0ea] text-xl"><Icon name={log.food.category === "drink" ? "drop" : "bowl"} /></span>
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-semibold text-[#1a2820]">{log.food.nameTh}</div>
+                  <div className="truncate text-sm font-semibold text-[#1a2820]"><RawText>{language === "en" ? log.food.name : log.food.nameTh}</RawText></div>
                   <div className="text-xs text-[#718078]">{consumedLabel(log.food, log.servings)} · {Math.round(log.food.calories * log.servings)} kcal</div>
                   {editingId === log.id && !onUpdateLog && (
                     <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -184,7 +186,7 @@ export default function History({ logs, onRemoveLog, onUpdateServings, onUpdateL
                 </div>
                 <button
                   type="button"
-                  aria-label={`แก้ไข ${log.food.nameTh}`}
+                  aria-label={`แก้ไข ${language === "en" ? log.food.name : log.food.nameTh}`}
                   onClick={() => { setEditingId(log.id); setEditedServings(String(log.servings)); setEditError(""); }}
                   className="grid h-10 w-10 shrink-0 place-items-center rounded-lg text-[#596c5c] hover:bg-[#edf4ee] hover:text-[#2d6e3e]"
                 >
@@ -192,7 +194,7 @@ export default function History({ logs, onRemoveLog, onUpdateServings, onUpdateL
                 </button>
                 <button
                   type="button"
-                  aria-label={`ลบ ${log.food.nameTh}`}
+                  aria-label={`ลบ ${language === "en" ? log.food.name : log.food.nameTh}`}
                   onClick={() => onRemoveLog(log.id)}
                   className="grid h-10 w-10 shrink-0 place-items-center rounded-lg text-[#718078] hover:bg-[#fff0ed] hover:text-[#9d302b]"
                 >
@@ -211,5 +213,5 @@ export default function History({ logs, onRemoveLog, onUpdateServings, onUpdateL
         </div>
       )}
     </div>
-  );
+  ));
 }

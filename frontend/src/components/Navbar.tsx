@@ -1,3 +1,4 @@
+import { RawText, useLocalizedView } from "../lib/i18n";
 import type { Page } from "../types";
 import Icon from "./Icon";
 
@@ -19,7 +20,8 @@ const tabs: { id: Page; label: string; short: string; icon: string }[] = [
 ];
 
 export default function Navbar({ page, onNavigate, username, isGuest, onEditProfile, onSignOut }: Props) {
-  return <>
+  const { view } = useLocalizedView();
+  return view(<>
     <aside className="app-sidebar">
       <div className="nt-brand"><Icon name="leaf" /><span>NutriThai<span className="brand-dot">.</span></span></div>
       <p className="sidebar-caption">YOUR DAILY NOURISHMENT</p>
@@ -32,7 +34,7 @@ export default function Navbar({ page, onNavigate, username, isGuest, onEditProf
         <div className="sidebar-note"><Icon name="leaf" /><p>ทีละมื้อ ทีละวัน<br /><span>ดูแลตัวเองในแบบของคุณ</span></p></div>
         <button type="button" onClick={onEditProfile} className="sidebar-profile">
           <span className="profile-avatar"><Icon name="user" /></span>
-          <span className="min-w-0"><strong className="block truncate">{username}</strong><span className="block text-xs">แก้ไขโปรไฟล์</span></span>
+          <span className="min-w-0"><strong className="block truncate"><RawText>{username}</RawText></strong><span className="block text-xs">แก้ไขโปรไฟล์</span></span>
         </button>
         <button type="button" onClick={onSignOut} className="sidebar-signout"><Icon name="logout" />{isGuest ? "ออกจากโหมดผู้เยี่ยมชม" : "ออกจากระบบ"}</button>
       </div>
@@ -42,5 +44,5 @@ export default function Navbar({ page, onNavigate, username, isGuest, onEditProf
         <span className="mobile-nav-icon"><Icon name={tab.icon} /></span><span>{tab.short}</span>
       </button>)}
     </nav>
-  </>;
+  </>);
 }

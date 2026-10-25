@@ -11,11 +11,14 @@ export class ApiError extends Error {
 }
 
 async function refreshSession(): Promise<boolean> {
-  const response = await fetch(`${API_BASE}/api/v1/auth/refresh`, {
+  try {
+    const response = await fetch(`${API_BASE}/api/v1/auth/refresh`, {
     method: "POST",
     credentials: "include",
+    signal: AbortSignal.timeout(25000),
   });
   return response.status === 200;
+  } catch { return false; }
 }
 
 export async function apiFetch(path: string, init: RequestInit = {}, retry = true): Promise<Response> {
@@ -23,11 +26,15 @@ export async function apiFetch(path: string, init: RequestInit = {}, retry = tru
   if (init.body && !(init.body instanceof FormData) && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
-  const response = await fetch(`${API_BASE}${path}`, {
-    ...init,
-    headers,
-    credentials: "include",
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE}${path}`, {
+      ...init, headers, credentials: "include",
+      signal: init.signal ?? AbortSignal.timeout(25000),
+    });
+  } catch {
+    throw new ApiError("เชื่อมต่อระบบไม่ได้ กรุณาตรวจอินเทอร์เน็ตแล้วลองอีกครั้ง", 0);
+  }
   const isAuthEntry = [
     "/api/v1/auth/login",
     "/api/v1/auth/signup",
@@ -55,7 +62,9 @@ export async function apiJson<T>(path: string, init: RequestInit = {}): Promise<
     const message = Array.isArray(detail)
       ? detail.map((item: { msg?: string }) => item.msg || "ข้อมูลไม่ถูกต้อง").join(" · ")
       : typeof detail === "string" ? detail : `คำขอไม่สำเร็จ (${response.status})`;
-    throw new ApiError(message, response.status);
+    throw new ApiError(response.status >= 500
+      ? "ระบบไม่พร้อมใช้งานชั่วคราว กรุณาลองอีกครั้ง ข้อมูลที่กรอกยังอยู่ในหน้านี้"
+      : message, response.status);
   }
   return result as T;
 }

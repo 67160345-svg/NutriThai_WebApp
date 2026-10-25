@@ -1,3 +1,4 @@
+import { useLocalizedView } from "../lib/i18n";
 import type { ButtonHTMLAttributes } from "react";
 
 interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -5,5 +6,6 @@ interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 export default function Button({ variant = "primary", className = "", type = "button", ...props }: Props) {
-  return <button {...props} type={type} className={`nt-button nt-button--${variant} ${className}`} />;
+  const { view } = useLocalizedView();
+  return view(<button {...props} type={type} className={`nt-button nt-button--${variant} ${className}`} />);
 }

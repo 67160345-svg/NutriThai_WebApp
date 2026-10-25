@@ -1,3 +1,4 @@
+import { useLocalizedView } from "../lib/i18n";
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { updatePassword } from "../lib/api";
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export default function PasswordRecovery({ onComplete }: Props) {
+  const { view } = useLocalizedView();
   const [password, setPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
@@ -33,7 +35,7 @@ export default function PasswordRecovery({ onComplete }: Props) {
     }
   };
 
-  return (
+  return view((
     <AuthLayout>
       <form onSubmit={handleSubmit} className="auth-form-card recovery-form space-y-4">
         <div className="auth-form-heading">
@@ -76,5 +78,5 @@ export default function PasswordRecovery({ onComplete }: Props) {
         </button>
       </form>
     </AuthLayout>
-  );
+  ));
 }

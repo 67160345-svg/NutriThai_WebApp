@@ -1,3 +1,4 @@
+import { useLocalizedView } from "../lib/i18n";
 import { useState } from "react";
 import type { FormEvent } from "react";
 import type { HealthProfile } from "../types";
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export default function AuthPage({ onGuest, onAuthenticated }: Props) {
+  const { view } = useLocalizedView();
   const [isLogin, setIsLogin] = useState(true);
   const [isResetMode, setIsResetMode] = useState(false);
   const [email, setEmail] = useState("");
@@ -70,7 +72,7 @@ export default function AuthPage({ onGuest, onAuthenticated }: Props) {
     setSuccessMsg("");
   };
 
-  return (
+  return view((
     <AuthLayout>
       <section className="auth-form-card">
         <header className="auth-form-heading">
@@ -216,10 +218,10 @@ export default function AuthPage({ onGuest, onAuthenticated }: Props) {
             <button type="button" onClick={continueAsGuest} className="min-h-12 w-full rounded-2xl border border-[#e5e2da] bg-transparent px-4 text-sm font-semibold text-[#1a2820] transition hover:bg-white">
               ทดลองใช้โดยไม่สมัคร (โหมดผู้เยี่ยมชม)
             </button>
-            <p className="mt-4 text-center text-xs leading-5 text-[#718078]">ข้อมูลในโหมดผู้เยี่ยมชมจะหายเมื่อรีเฟรชหรือปิดหน้า</p>
+            <p className="mt-4 text-center text-xs leading-5 text-[#718078]">ข้อมูลผู้เยี่ยมชมเก็บในเบราว์เซอร์เครื่องนี้ ไม่ซิงก์ข้ามเครื่อง และอาจหายเมื่อล้างข้อมูลเว็บไซต์หรือใช้โหมดไม่ระบุตัวตน</p>
           </>
         )}
       </section>
     </AuthLayout>
-  );
+  ));
 }

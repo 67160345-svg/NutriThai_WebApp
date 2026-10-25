@@ -1,0 +1,127 @@
+:root {
+  --motion-ease: cubic-bezier(.22, 1, .36, 1);
+  --motion-fast: 160ms;
+}
+
+/* Short entrance animations finish without leaving transformed containers. */
+@keyframes nt-enter {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes nt-card-enter {
+  from { opacity: 0; transform: translateY(10px) scale(.985); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes nt-pop {
+  from { opacity: 0; transform: translateY(6px) scale(.96); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes nt-progress { from { transform: scaleX(0); } to { transform: none; } }
+@keyframes nt-ring { from { stroke-dashoffset: 527.788; } }
+@keyframes nt-leaf {
+  0%, 100% { transform: rotate(-5deg) scale(.96); }
+  50% { transform: rotate(7deg) scale(1.04); }
+}
+@keyframes nt-notice { from { opacity: 0; } to { opacity: 1; } }
+
+  .app-shell .app-main > :is(.dashboard-page, .food-logger, .soft-page, .settings-page) {
+    animation: nt-enter 320ms var(--motion-ease) backwards;
+  }
+
+:is(.dashboard-top, .dashboard-bottom) > section,
+  .dashboard-grid > aside,
+  .logger-discovery > *,
+  .logger-shortcuts,
+  .insight-stat,
+  .insight-chart,
+  .profile-card,
+  .auth-form-card {
+    animation: nt-card-enter 420ms var(--motion-ease) backwards;
+  }
+
+:is(.dashboard-top, .dashboard-bottom) > section:nth-child(2),
+  .logger-discovery > :nth-child(2) { animation-delay: 70ms; }
+
+.dashboard-bottom { animation: nt-enter 420ms 100ms var(--motion-ease) backwards; }
+
+.dashboard-grid > aside { animation-delay: 140ms; }
+
+.insight-stat:nth-child(2) { animation-delay: 60ms; }
+
+.insight-stat:nth-child(3) { animation-delay: 120ms; }
+
+.logger-results > button,
+  .shortcut-foods > button,
+  .recommendation-list > * { animation: nt-enter 300ms var(--motion-ease) backwards; }
+
+:is(.logger-results, .shortcut-foods, .recommendation-list) > :nth-child(2) { animation-delay: 35ms; }
+
+:is(.logger-results, .shortcut-foods, .recommendation-list) > :nth-child(3) { animation-delay: 70ms; }
+
+:is(.logger-results, .shortcut-foods, .recommendation-list) > :nth-child(n+4) { animation-delay: 100ms; }
+
+.logger-selection, .profile-user-dropdown,
+  .logger-custom, .logger-scan,
+  .food-logger section[aria-label="ชุดมื้ออาหาร"],
+  .history-page section[aria-label="คัดลอกมื้ออาหาร"] { animation: nt-pop 260ms var(--motion-ease) backwards; }
+
+.logger-toast { animation: nt-pop 300ms var(--motion-ease) backwards; }
+
+details[open] > :not(summary) { animation: nt-enter 220ms var(--motion-ease) backwards; }
+
+.service-notice, [role="alert"] { animation: nt-notice 200ms ease-out backwards; }
+
+.calorie-ring circle:last-child {
+    animation: nt-ring 850ms 120ms var(--motion-ease) backwards;
+    transition: stroke-dashoffset 650ms var(--motion-ease), stroke 200ms ease;
+  }
+
+.macro-track > div {
+    transform-origin: left center;
+    animation: nt-progress 650ms 100ms var(--motion-ease) backwards;
+    transition: width 500ms var(--motion-ease);
+  }
+
+.app-loading > .nt-icon { animation: nt-leaf 1.5s ease-in-out infinite; }
+
+.hero-bowl { animation: nt-enter 700ms 80ms var(--motion-ease) backwards; }
+
+:is(.app-shell, .auth-form-card, .profile-page) button {
+    transition: transform var(--motion-fast) var(--motion-ease),
+      background-color 180ms ease, border-color 180ms ease,
+      box-shadow 180ms ease, color 180ms ease, opacity 180ms ease;
+  }
+
+:is(.app-shell, .auth-form-card, .profile-page) button:not(:disabled):active { transform: scale(.97); }
+
+.sidebar-link > .nt-icon, .mobile-nav-icon {
+    transition: transform 240ms var(--motion-ease), background-color 200ms ease, color 200ms ease;
+  }
+
+.sidebar-link.is-active > .nt-icon { animation: nt-pop 280ms var(--motion-ease); }
+
+.mobile-nav .is-active .mobile-nav-icon { transform: translateY(-3px); }
+
+.logger-tabs button, .logger-categories button { transition: background-color 200ms ease, color 200ms ease, transform 160ms ease; }
+
+:is(.app-shell, .auth-form-card, .profile-page) :is(input, select, textarea) {
+    transition: border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
+  }
+
+@media (hover: hover) and (pointer: fine) {
+  .sidebar-link:not(.is-active):hover { transform: translateX(3px); }
+  :is(.nt-button, .shortcut-foods > button, .repeat-meal, .logger-results > button):not(:disabled):hover {
+    transform: translateY(-2px); box-shadow: 0 6px 18px #263b2712;
+  }
+  .header-search:hover > .nt-icon { transform: rotate(-8deg); }
+}
+
+/* Also overrides legacy entrance animations and utility animations. */
+@media (prefers-reduced-motion: reduce) {
+  :root:not([data-motion="full"]):focus-within { scroll-behavior: auto; }
+  :root:not([data-motion="full"]) *, :root:not([data-motion="full"]) *::before, :root:not([data-motion="full"]) *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+  :root:not([data-motion="full"]) .mobile-nav .is-active .mobile-nav-icon { transform: none; }
+}

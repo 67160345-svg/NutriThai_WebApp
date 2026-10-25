@@ -1,3 +1,4 @@
+import { RawText, useLocalizedView } from "./lib/i18n";
 import { useEffect, useRef, useState } from "react";
 import { FoodLog, HealthProfile, Page } from "./types";
 import type { Food, FoodPreference, FoodPreferences, MealType, WeightLog } from "./types";
@@ -17,6 +18,9 @@ import Navbar from "./components/Navbar";
 import Icon from "./components/Icon";
 import OnboardingModal from "./components/OnboardingModal";
 import PasswordRecovery from "./components/PasswordRecovery";
+import SettingsPage from "./components/SettingsPage";
+import { SettingsProvider } from "./lib/settings";
+import { readGuest, saveGuest, deactivateGuest } from "./lib/guestStorage";
 
 type Account = ApiUser;
 
@@ -30,7 +34,8 @@ const guestProfile: HealthProfile = {
   ...computeHealthMetrics("male", 65, 170, 25, "moderate", "maintain"),
 };
 
-export default function App() {
+function AppContent() {
+  const { view } = useLocalizedView();
   const dataVersion = useRef(0);
   const [preferences, setPreferences] = useState<FoodPreferences>({});
   const [weights, setWeights] = useState<WeightLog[]>([]);
@@ -54,9 +59,35 @@ export default function App() {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [displayName, setDisplayName] = useState("");
 
+  const [catalogLoading, setCatalogLoading] = useState(false);
+  const [catalogError, setCatalogError] = useState(false);
+  const [storageError, setStorageError] = useState(false);
+  const [guestOnboarded, setGuestOnboarded] = useState(false);
+  const catalogRequest = useRef<number | null>(null);
+
+  const loadCatalog = async (version = dataVersion.current) => {
+    if (catalogRequest.current === version) return;
+    catalogRequest.current = version;
+    setCatalogLoading(true);
+    try {
+      const catalog = await readFoods();
+      if (version === dataVersion.current) { setFoodCatalog(catalog); setCatalogError(false); }
+    } catch {
+      if (version === dataVersion.current) setCatalogError(true);
+    } finally { if (catalogRequest.current === version) { catalogRequest.current = null; setCatalogLoading(false); } }
+  };
+
   useEffect(() => {
-    localStorage.removeItem("nutrithai_logs");
-  }, []);
+    if (!isGuest || !healthProfile || !authReady) return;
+    setStorageError(!saveGuest({ version: 1, active: true, onboarded: guestOnboarded,
+      profile: healthProfile, logs, customFoods, preferences, weights }));
+  }, [isGuest, healthProfile, authReady, guestOnboarded, logs, customFoods, preferences, weights]);
+
+  const catalogNotice = (catalogError || catalogLoading) && <div className="service-notice" role={catalogLoading ? "status" : "alert"}>
+    <div><strong>{catalogLoading ? "กำลังโหลดรายการอาหาร…" : "ระบบข้อมูลอาหารไม่พร้อมใช้งานชั่วคราว"}</strong>
+    {!catalogLoading && <p>ยังดูประวัติ ใช้รายการเดิม และเพิ่มอาหารของฉันได้ ลองเชื่อมต่อใหม่อีกครั้ง</p>}</div>
+    <button type="button" disabled={catalogLoading} onClick={() => void loadCatalog()}>ลองอีกครั้ง</button>
+  </div>;
 
   const loadExtras = async (version: number) => {
     const [prefs, weightRows] = await Promise.allSettled([readPreferences(), readWeights()]);
@@ -72,30 +103,32 @@ export default function App() {
     const version = ++dataVersion.current;
     setPreferences({}); setWeights([]); setPreferencesReady(false); setWeightsReady(false); setExtrasError("");
     setAccount(user);
-    setDisplayName(localStorage.getItem(`nutrithai_display_name:${user.id}`) || user.username);
+    try { setDisplayName(localStorage.getItem(`nutrithai_display_name:${user.id}`) || user.username); }
+    catch { setDisplayName(user.username); }
     setIsGuest(false);
+    deactivateGuest();
     setPage("dashboard");
     setAccountLoading(true);
     setErrorMessage("");
     try {
-      const [profile, savedLogs, catalog, personalFoods] = await Promise.all([
+      const [profile, savedLogs, personalFoods] = await Promise.all([
         readProfile(),
         readFoodLogs(),
-        readFoods(),
         readCustomFoods(),
       ]);
+      if (version !== dataVersion.current) return;
       setHealthProfile(profile ?? guestProfile);
       setLogs(savedLogs);
       setCustomFoods(personalFoods);
-      setFoodCatalog(catalog);
+      void loadCatalog(version);
       setShowOnboarding(!profile);
       await loadExtras(version);
     } catch (error) {
+      if (version !== dataVersion.current) return;
       setErrorMessage(`โหลดข้อมูลบัญชีไม่สำเร็จ: ${error instanceof Error ? error.message : "เกิดข้อผิดพลาด"}`);
       setHealthProfile(null);
     } finally {
-      setAccountLoading(false);
-      setAuthReady(true);
+      if (version === dataVersion.current) { setAccountLoading(false); setAuthReady(true); }
     }
   };
 
@@ -120,23 +153,24 @@ export default function App() {
           window.history.replaceState(null, "", window.location.pathname + window.location.search);
         }
       }
+      const savedGuest = readGuest();
+      if (savedGuest?.active && !authCallbackType) {
+        if (active) { void continueAsGuest(savedGuest.profile); setAuthReady(true); }
+        return;
+      }
       try {
         const user = await apiJson<ApiUser>("/api/v1/auth/session");
         if (active) await loadAuthenticatedUser(user);
       } catch (error) {
         if (!active) return;
         if (error instanceof Error && !error.message.includes("กรุณาเข้าสู่ระบบ")) {
-          setErrorMessage(`ตรวจสอบ session ไม่สำเร็จ: ${error.message}`);
+          setErrorMessage("ตรวจสอบการเข้าสู่ระบบไม่ได้ชั่วคราว ลองอีกครั้งหรือใช้โหมดผู้เยี่ยมชมก่อนได้");
         }
         setAuthReady(true);
       }
     };
     void restoreSession();
     return () => { active = false; };
-  }, []);
-
-  useEffect(() => {
-    document.documentElement.lang = "th";
   }, []);
 
   const addLog = async (log: FoodLog) => {
@@ -222,29 +256,18 @@ export default function App() {
   };
 
   const continueAsGuest = async (profile: HealthProfile) => {
-    ++dataVersion.current;
-    setPreferences({}); setWeights([]); setPreferencesReady(true); setWeightsReady(true); setExtrasError("");
-    setAccountLoading(true);
-    setErrorMessage("");
-    try {
-      const catalog = await readFoods();
-      setShowAuthPage(false);
-      setAccount(null);
-      setIsGuest(true);
-      setHealthProfile(profile);
-      const guestName = localStorage.getItem("nutrithai_display_name:guest") || "ผู้เยี่ยมชม";
-      setDisplayName(guestName);
-      setFoodCatalog(catalog);
-      setLogs([]);
-      setCustomFoods([]);
-      setPage("dashboard");
-      localStorage.removeItem("nutrithai_logs");
-      setShowOnboarding(true);
-    } catch (error) {
-      setErrorMessage(`โหลดรายการอาหารไม่สำเร็จ: ${error instanceof Error ? error.message : "เกิดข้อผิดพลาด"}`);
-    } finally {
-      setAccountLoading(false);
-    }
+    const version = ++dataVersion.current;
+    const saved = readGuest();
+    setPreferences(saved?.preferences ?? {}); setWeights(saved?.weights ?? []);
+    setPreferencesReady(true); setWeightsReady(true); setExtrasError("");
+    setErrorMessage(""); setShowAuthPage(false); setAccount(null); setIsGuest(true);
+    setHealthProfile(saved?.profile ?? profile);
+    try { setDisplayName(localStorage.getItem("nutrithai_display_name:guest") || "ผู้เยี่ยมชม"); }
+    catch { setDisplayName("ผู้เยี่ยมชม"); }
+    setLogs(saved?.logs ?? []); setCustomFoods(saved?.customFoods ?? []);
+    setGuestOnboarded(saved?.onboarded ?? false);
+    setShowOnboarding(!saved?.onboarded); setPage("dashboard");
+    void loadCatalog(version);
   };
 
   const signOut = async () => {
@@ -256,7 +279,7 @@ export default function App() {
         return;
       }
     }
-    if (isGuest) localStorage.removeItem("nutrithai_logs");
+    if (isGuest) deactivateGuest();
     ++dataVersion.current;
     setPreferences({}); setWeights([]); setPreferencesReady(false); setWeightsReady(false); setExtrasError("");
     setAccount(null);
@@ -268,18 +291,19 @@ export default function App() {
     setCustomFoods([]);
     setShowOnboarding(false);
     setShowUserMenu(false);
+    setCatalogError(false); setStorageError(false);
   };
 
   if (!authReady || accountLoading) {
-    return <div className="app-loading" role="status"><Icon name="leaf" /><strong>NutriThai</strong><p>กำลังโหลดข้อมูลบัญชี...</p></div>;
+    return view(<div className="app-loading" role="status"><Icon name="leaf" /><strong>NutriThai</strong><p>กำลังโหลดข้อมูลบัญชี...</p></div>);
   }
 
   if (isPasswordRecovery) {
-    return <PasswordRecovery onComplete={() => setIsPasswordRecovery(false)} />;
+    return view(<PasswordRecovery onComplete={() => setIsPasswordRecovery(false)} />);
   }
 
   if (showAuthPage) {
-    return (
+    return view((
       <div>
         {errorMessage && <div role="alert" className="mx-auto mt-4 max-w-xl rounded-xl bg-rose-50 p-3 text-sm text-rose-800">{errorMessage}</div>}
         <AuthPage
@@ -290,35 +314,37 @@ export default function App() {
           }}
         />
       </div>
-    );
+    ));
   }
 
   if (!healthProfile && !isGuest) {
     if (account) {
-      return (
+      return view((
         <div className="app-account-error min-h-screen flex flex-col items-center justify-center gap-4 p-4 text-center">
           <Icon name="user" />
           <div role="alert" className="max-w-lg rounded-xl bg-rose-50 p-4 text-sm text-rose-800">
             {errorMessage || "ไม่สามารถโหลดข้อมูลบัญชีได้"}
           </div>
+          <button type="button" onClick={() => void loadAuthenticatedUser(account)} className="rounded-xl border px-5 py-3">ลองอีกครั้ง</button>
           <button type="button" onClick={() => void signOut()} className="rounded-xl bg-[#176b52] px-5 py-3 text-sm font-semibold text-white">
             ออกจากระบบ
           </button>
         </div>
-      );
+      ));
     }
-    return (
+    return view((
       <div>
         {errorMessage && <div role="alert" className="mx-auto mt-4 max-w-xl rounded-xl bg-rose-50 p-3 text-sm text-rose-800">{errorMessage}</div>}
         <AuthPage onGuest={continueAsGuest} onAuthenticated={(user) => void loadAuthenticatedUser(user)} />
       </div>
-    );
+    ));
   }
 
   if (showOnboarding && healthProfile) {
-    return (
+    return view((
       <div>
         {errorMessage && <div role="alert" className="mx-auto mb-4 max-w-3xl rounded-xl bg-rose-50 p-3 text-sm text-rose-800">{errorMessage}</div>}
+        {catalogNotice}
         <OnboardingModal
           editing={editingProfile}
           isGuest={isGuest}
@@ -332,20 +358,21 @@ export default function App() {
             }
             const key = isGuest ? "guest" : account?.id;
             if (key && name.trim()) {
-              localStorage.setItem(`nutrithai_display_name:${key}`, name.trim());
+              try { localStorage.setItem(`nutrithai_display_name:${key}`, name.trim()); } catch { setStorageError(true); }
               setDisplayName(name.trim());
             }
             setHealthProfile(savedProfile);
+            if (isGuest) setGuestOnboarded(true);
             setShowOnboarding(false);
             setEditingProfile(false);
             setErrorMessage("");
           }}
         />
       </div>
-    );
+    ));
   }
 
-  return (
+  return view((
     <div className="app-shell min-h-screen">
       <a href="#main-content" className="sr-only fixed left-3 top-3 z-[80] rounded-lg bg-white px-4 py-2 text-sm font-semibold text-[#2d6e3e] focus:not-sr-only">ข้ามไปเนื้อหา</a>
       <Navbar
@@ -360,7 +387,7 @@ export default function App() {
         {isGuest ? (
           <div className="app-status flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
             <span aria-hidden="true">♧</span>
-            <span>โหมดผู้เยี่ยมชม · ข้อมูลจะหายเมื่อรีเฟรช</span>
+            <span>โหมดผู้เยี่ยมชม · เก็บข้อมูลในเบราว์เซอร์เครื่องนี้</span>
             <button type="button" onClick={() => setShowAuthPage(true)} className="font-semibold text-[#2d6e3e] underline underline-offset-2">สร้างบัญชี</button>
           </div>
         ) : (
@@ -375,12 +402,15 @@ export default function App() {
             <button type="button" className="header-search" aria-label="ค้นหาอาหาร" onClick={() => setPage("logger")}><Icon name="search" /><span>ค้นหาอาหาร...</span></button>
           <div className="relative">
             <button type="button" aria-label="เมนูผู้ใช้" aria-expanded={showUserMenu} onClick={() => setShowUserMenu((open) => !open)} className="user-menu-trigger">
-              <span aria-hidden="true" className="user-avatar">{(displayName || account?.username || "G").slice(0, 1)}</span><span className="max-w-28 truncate">{displayName || account?.username || "Guest"}</span>
+              <span aria-hidden="true" className="user-avatar"><RawText>{(displayName || account?.username || "G").slice(0, 1)}</RawText></span><span className="max-w-28 truncate"><RawText>{displayName || account?.username || "Guest"}</RawText></span>
             </button>
             {showUserMenu && (
               <div className="profile-user-dropdown">
-                <div className="profile-dropdown-identity"><span className="user-avatar">{(displayName || account?.username || "G").slice(0, 1)}</span><div><strong>{displayName || account?.username || "ผู้เยี่ยมชม"}</strong><small>{isGuest ? "โหมดผู้เยี่ยมชม" : "บัญชี NutriThai"}</small></div></div>
+                <div className="profile-dropdown-identity"><span className="user-avatar"><RawText>{(displayName || account?.username || "G").slice(0, 1)}</RawText></span><div><strong><RawText>{displayName || account?.username || "ผู้เยี่ยมชม"}</RawText></strong><small>{isGuest ? "โหมดผู้เยี่ยมชม" : "บัญชี NutriThai"}</small></div></div>
                 <button type="button" onClick={() => { setEditingProfile(true); setShowOnboarding(true); setShowUserMenu(false); }}><Icon name="user" />แก้ไขโปรไฟล์<Icon name="arrow" /></button>
+                <button type="button" onClick={() => { setPage("theme"); setShowUserMenu(false); }}><Icon name="sun" />ธีม<Icon name="arrow" /></button>
+                <button type="button" onClick={() => { setPage("language"); setShowUserMenu(false); }}><Icon name="language" />ภาษา<Icon name="arrow" /></button>
+                <button type="button" onClick={() => { setPage("settings"); setShowUserMenu(false); }}><Icon name="settings" />ตั้งค่า<Icon name="arrow" /></button>
                 <button type="button" className="profile-dropdown-signout" onClick={() => void signOut()}><Icon name="logout" />ออกจากระบบ</button>
               </div>
             )}
@@ -390,14 +420,22 @@ export default function App() {
         </header>
       {errorMessage && <div role="alert" className="mx-auto mt-3 w-full max-w-[1160px] px-4 sm:px-8"><div className="rounded-xl bg-rose-50 p-3 text-sm text-rose-800">{errorMessage}</div></div>}
       <main id="main-content" className="app-main">
+        {(page === "theme" || page === "language" || page === "settings") && <SettingsPage section={page === "settings" ? "general" : page} />}
+        {catalogNotice}
+        {isGuest && <p className="guest-storage-note">ข้อมูลอยู่เฉพาะเบราว์เซอร์นี้ ไม่ซิงก์ข้ามเครื่อง และอาจหายหากล้างข้อมูลเว็บไซต์หรือใช้โหมดไม่ระบุตัวตน การสร้างบัญชียังไม่ย้ายข้อมูลเดิมให้อัตโนมัติ</p>}
+        {storageError && <div role="alert" className="service-notice">บันทึกลงเครื่องไม่ได้ ข้อมูลรอบนี้อาจหายเมื่อปิดหน้า กรุณาตรวจพื้นที่ว่างหรือการอนุญาตเก็บข้อมูลของเบราว์เซอร์</div>}
         {extrasError && <div role="alert" className="mx-auto max-w-[1160px] px-4 py-3 text-sm text-amber-800">{extrasError} <button type="button" className="underline" onClick={() => void loadExtras(dataVersion.current)}>โหลดข้อมูลใหม่</button></div>}
         {page === "dashboard" && <Dashboard healthProfile={healthProfile!} logs={logs} onRemoveLog={(id) => void removeLog(id).catch((error) => setErrorMessage(error.message))} onNavigate={setPage} username={displayName || "คุณ"} />}
         {page === "history" && <History logs={logs} onCopyMeal={copyMeal} onRemoveLog={(id) => void removeLog(id).catch((error) => setErrorMessage(error.message))} onUpdateServings={updateLogServings} onUpdateLog={editLog} customFoods={customFoods} />}
         {page === "logger" && <FoodLogger key={account?.id ?? "guest"} preferences={preferences} recommendationsReady={preferencesReady} onPreference={preferencesReady ? changePreference : undefined} onAddBatch={addBatch} logs={logs} healthProfile={healthProfile!} customFoods={customFoods} onCreateCustomFood={addCustomFood} foods={foodCatalog} onAddLog={addLog} isAuthenticated={Boolean(account)} />}
-        {page === "ai-scan" && <FoodLogger key="ai-scan" foods={foodCatalog} onAddLog={addLog} isAuthenticated={Boolean(account)} initialTab="scan" scanOnly />}
+        {page === "ai-scan" && <FoodLogger key="ai-scan" foods={foodCatalog} onAddLog={addLog} onAddBatch={addBatch} isAuthenticated={Boolean(account)} initialTab="scan" scanOnly />}
         {page === "advice" && <AdviceCard healthProfile={healthProfile!} logs={logs} foods={foodCatalog} weights={weights} onSaveWeight={weightsReady ? recordWeight : undefined} onDeleteWeight={weightsReady ? removeWeight : undefined} preferences={preferences} recommendationsReady={preferencesReady} />}
       </main>
       </div>
     </div>
-  );
+  ));
+}
+
+export default function App() {
+  return <SettingsProvider><AppContent /></SettingsProvider>;
 }

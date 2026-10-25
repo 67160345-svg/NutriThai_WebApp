@@ -2,23 +2,23 @@
 .food-logger { max-width: 1500px; margin: auto; padding: 30px 40px 28px; }
 .food-logger > fieldset { width: 100%; }
 .logger-heading { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 28px; }
-.logger-heading .eyebrow { color: var(--brand); font-size: 9px; letter-spacing: .15em; font-weight: 700; }
-.logger-heading h1 { display: flex; align-items: center; gap: 12px; margin: 6px 0 10px; font-size: 30px; line-height: 1.35; font-weight: 700; }
+.logger-heading .eyebrow { color: var(--brand); font-size: calc(9px * var(--text-scale, 1)); letter-spacing: .15em; font-weight: 700; }
+.logger-heading h1 { display: flex; align-items: center; gap: 12px; margin: 6px 0 10px; font-size: calc(30px * var(--text-scale, 1)); line-height: 1.35; font-weight: 700; }
 .logger-heading h1 .nt-icon { color: #78a534; width: 27px; height: 27px; }
-.logger-heading > div > p:last-child { color: var(--muted); font-size: 13px; }
-.logger-date { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-size: 12px; color: var(--muted); }
+.logger-heading > div > p:last-child { color: var(--muted); font-size: calc(13px * var(--text-scale, 1)); }
+.logger-date { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-size: calc(12px * var(--text-scale, 1)); color: var(--muted); }
 .logger-date .nt-icon { width: 17px; height: 17px; }
 .app-shell .food-logger .logger-date input { max-width: 160px; border-radius: 999px; background: var(--surface) !important; }
 .logger-tabs { display: flex; gap: 8px; padding: 7px; border-radius: 20px; background: #eaf0e6; max-width: 660px; margin-bottom: 24px; }
-.logger-tabs button { display: flex; align-items: center; justify-content: center; gap: 10px; flex: 1; min-height: 49px; border-radius: 15px; color: var(--muted); font-size: 14px; font-weight: 600; }
+.logger-tabs button { display: flex; align-items: center; justify-content: center; gap: 10px; flex: 1; min-height: 49px; border-radius: 15px; color: var(--muted); font-size: calc(14px * var(--text-scale, 1)); font-weight: 600; }
 .logger-tabs button.is-active { background: var(--dark); color: white; box-shadow: 0 3px 8px #24332d12; }
 .logger-tabs .nt-icon { width: 19px; height: 19px; }
 .logger-categories { display: flex; flex-wrap: wrap; gap: 9px; margin-bottom: 16px; }
-.logger-categories button { min-height: 44px; border-radius: 999px; padding: 9px 22px; background: white; border: 1px solid var(--line); color: var(--muted); font-size: 13px; }
+.logger-categories button { min-height: 44px; border-radius: 999px; padding: 9px 22px; background: white; border: 1px solid var(--line); color: var(--muted); font-size: calc(13px * var(--text-scale, 1)); }
 .logger-categories button.is-active { color: var(--ink); background: var(--lime); border-color: var(--lime); font-weight: 700; }
 .logger-search-box { position: relative; margin-bottom: 24px; }
 .logger-search-box > .nt-icon { position: absolute; left: 21px; top: 19px; width: 21px; height: 21px; color: var(--muted); }
-.app-shell .food-logger #food-search { min-height: 60px; padding: 17px 55px; background: white !important; border-color: var(--line); box-shadow: none; font-size: 14px; }
+.app-shell .food-logger #food-search { min-height: 60px; padding: 17px 55px; background: white !important; border-color: var(--line); box-shadow: none; font-size: calc(14px * var(--text-scale, 1)); }
 .logger-clear-search { position: absolute; right: 8px; top: 8px; width: 44px; height: 44px; border-radius: 50%; color: var(--muted); }
 .logger-clear-search:hover { background: var(--canvas); }
 .logger-discovery { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: 28px; }
@@ -29,9 +29,9 @@
 .logger-discovery:not(:has(.food-recommendations)) .logger-recommendations { grid-column: 1; grid-row: auto; }
 .logger-discovery:not(:has(.food-recommendations)) .logger-catalog { grid-row: auto; }
 .logger-section-heading { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 18px; }
-.logger-section-heading .eyebrow { font-size: 8px; letter-spacing: .13em; color: var(--brand); margin-bottom: 5px; }
-.logger-section-heading h2 { font-size: 20px; font-weight: 700; }
-.logger-section-heading > span { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); }
+.logger-section-heading .eyebrow { font-size: calc(8px * var(--text-scale, 1)); letter-spacing: .13em; color: var(--brand); margin-bottom: 5px; }
+.logger-section-heading h2 { font-size: calc(20px * var(--text-scale, 1)); font-weight: 700; }
+.logger-section-heading > span { display: flex; align-items: center; gap: 5px; font-size: calc(11px * var(--text-scale, 1)); color: var(--muted); }
 .logger-section-heading > span .nt-icon { width: 16px; height: 16px; }
 .food-logger .logger-results > button { border: 1px solid transparent; box-shadow: none; border-radius: 18px; background: var(--canvas); min-height: 88px; }
 .food-logger .logger-results > button:hover { background: #eef5e7; border-color: #d4e5c6; }
@@ -44,25 +44,25 @@
 .food-logger .food-recommendations { margin: 0; padding: 32px; border: 1px solid #e3ebdf; border-radius: var(--card-radius); background: #eef4e8; }
 .food-logger .recommendation-heading { display: flex; align-items: center; gap: 14px; margin-bottom: 28px; }
 .food-logger .recommendation-heading > .nt-icon { width: 44px; height: 44px; padding: 10px; background: #dceacb; color: var(--brand); border-radius: 50%; }
-.food-logger .recommendation-heading h3 { font-size: 21px; line-height: 1.5; }
-.food-logger .recommendation-heading p { margin-top: 5px; color: var(--muted); font-size: 12px; line-height: 1.7; }
+.food-logger .recommendation-heading h3 { font-size: calc(21px * var(--text-scale, 1)); line-height: 1.5; }
+.food-logger .recommendation-heading p { margin-top: 5px; color: var(--muted); font-size: calc(12px * var(--text-scale, 1)); line-height: 1.7; }
 .food-logger .recommendation-controls { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
-.app-shell .food-logger input:not([type="checkbox"]), .app-shell .food-logger select { border-radius: 14px; padding: 11px 12px; min-height: 46px; min-width: 0; max-width: 100%; background: white !important; font-size: 13px; }
-.food-logger .food-recommendations label { font-size: 12px; font-weight: 600; }
-.food-logger .recommendation-budget { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding-top: 20px; color: var(--brand); font-size: 13px; font-weight: 600; }
+.app-shell .food-logger input:not([type="checkbox"]), .app-shell .food-logger select { border-radius: 14px; padding: 11px 12px; min-height: 46px; min-width: 0; max-width: 100%; background: white !important; font-size: calc(13px * var(--text-scale, 1)); }
+.food-logger .food-recommendations label { font-size: calc(12px * var(--text-scale, 1)); font-weight: 600; }
+.food-logger .recommendation-budget { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding-top: 20px; color: var(--brand); font-size: calc(13px * var(--text-scale, 1)); font-weight: 600; }
 .food-logger .recommendation-budget .nt-icon { width: 19px; height: 19px; }
-.food-logger .recommendation-day-budget { margin-left: auto; color: var(--muted); font-size: 12px; font-weight: 400; }
+.food-logger .recommendation-day-budget { margin-left: auto; color: var(--muted); font-size: calc(12px * var(--text-scale, 1)); font-weight: 400; }
 .food-logger .recommendation-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; align-items: start; margin-top: 22px; }
 .food-logger .recommendation-item { display: flex; flex-direction: column; min-width: 0; padding: 22px; border: 1px solid #e8ede3; border-radius: 22px; background: white; }
 .food-logger .recommendation-item-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 17px; }
-.food-logger .recommendation-number { display: grid; place-items: center; width: 31px; height: 31px; border-radius: 10px; background: #eff4e7; color: #739159; font: 700 12px "Nunito", sans-serif; }
+.food-logger .recommendation-number { display: grid; place-items: center; width: 31px; height: 31px; border-radius: 10px; background: #eff4e7; color: #739159; font: 700 calc(12px * var(--text-scale, 1)) "Nunito", sans-serif; }
 .food-logger .recommendation-item:nth-child(3n + 2) .recommendation-number { background: var(--aqua); color: #548185; }
 .food-logger .recommendation-item:nth-child(3n) .recommendation-number { background: #f8f0d5; color: #998647; }
-.food-logger .recommendation-kcal { font-size: 11px; color: var(--muted); white-space: nowrap; }
-.food-logger .recommendation-kcal strong { font: 800 23px "Nunito", sans-serif; color: var(--ink); margin-right: 3px; }
-.food-logger .recommendation-item h4 { min-height: 72px; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; font-size: 15px; font-weight: 600; line-height: 24px; overflow-wrap: anywhere; }
-.food-logger .recommendation-portion { color: var(--muted); font-size: 11px; line-height: 1.7; min-height: 38px; margin: 10px 0 18px; }
-.food-logger .recommendation-item > .recommendation-select { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 45px; padding: 10px 15px; border-radius: 999px; background: var(--dark); color: white; font-size: 12px; font-weight: 600; }
+.food-logger .recommendation-kcal { font-size: calc(11px * var(--text-scale, 1)); color: var(--muted); white-space: nowrap; }
+.food-logger .recommendation-kcal strong { font: 800 calc(23px * var(--text-scale, 1)) "Nunito", sans-serif; color: var(--ink); margin-right: 3px; }
+.food-logger .recommendation-item h4 { min-height: 72px; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; font-size: calc(15px * var(--text-scale, 1)); font-weight: 600; line-height: 24px; overflow-wrap: anywhere; }
+.food-logger .recommendation-portion { color: var(--muted); font-size: calc(11px * var(--text-scale, 1)); line-height: 1.7; min-height: 38px; margin: 10px 0 18px; }
+.food-logger .recommendation-item > .recommendation-select { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 45px; padding: 10px 15px; border-radius: 999px; background: var(--dark); color: white; font-size: calc(12px * var(--text-scale, 1)); font-weight: 600; }
 .food-logger .recommendation-select .nt-icon { width: 17px; height: 17px; }
 .food-logger .recommendation-select:hover { background: #3d5044; }
 .food-logger [aria-label^="ความชอบ"] button { min-height: 36px; border-color: var(--line); padding-inline: 11px; }
@@ -71,16 +71,16 @@
 .food-logger details { margin-top: 16px; border: 0; padding: 18px; border-radius: 20px; }
 .food-logger summary { min-height: 32px; line-height: 1.7; }
 .food-logger .food-recommendations details { padding: 0; background: transparent; border-radius: 0; }
-.food-logger .food-recommendations summary { font-size: 11px; color: var(--muted); min-height: 40px; padding: 11px 0; cursor: pointer; }
+.food-logger .food-recommendations summary { font-size: calc(11px * var(--text-scale, 1)); color: var(--muted); min-height: 40px; padding: 11px 0; cursor: pointer; }
 .food-logger .food-recommendations summary:focus-visible { outline: 3px solid #8cba6a; outline-offset: 3px; border-radius: 5px; }
-.food-logger .food-recommendations details > div { display: grid; gap: 12px; padding: 10px 0; font-size: 12px; line-height: 1.8; color: var(--muted); }
+.food-logger .food-recommendations details > div { display: grid; gap: 12px; padding: 10px 0; font-size: calc(12px * var(--text-scale, 1)); line-height: 1.8; color: var(--muted); }
 .food-logger .recommendation-item .recommendation-food-details { border-top: 1px solid var(--line); margin-top: 17px; }
-.food-logger .recommendation-food-details summary { font-size: 10px; }
-.food-logger .recommendation-show-more { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 20px auto 0; min-height: 44px; padding: 10px 22px; border: 1px solid #cbd9bf; border-radius: 999px; color: var(--brand); font-size: 12px; background: transparent; }
+.food-logger .recommendation-food-details summary { font-size: calc(10px * var(--text-scale, 1)); }
+.food-logger .recommendation-show-more { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 20px auto 0; min-height: 44px; padding: 10px 22px; border: 1px solid #cbd9bf; border-radius: 999px; color: var(--brand); font-size: calc(12px * var(--text-scale, 1)); background: transparent; }
 .food-logger .recommendation-show-more:hover { background: #e0ebd4; }
 .food-logger .recommendation-show-more .nt-icon { width: 16px; height: 16px; }
-.food-logger .recommendation-footnote { text-align: center; margin-top: 20px; font-size: 11px; color: var(--muted); line-height: 1.8; }
-.food-logger .recommendation-notice { padding: 14px 0; font-size: 13px; line-height: 1.8; color: var(--muted); }
+.food-logger .recommendation-footnote { text-align: center; margin-top: 20px; font-size: calc(11px * var(--text-scale, 1)); color: var(--muted); line-height: 1.8; }
+.food-logger .recommendation-notice { padding: 14px 0; font-size: calc(13px * var(--text-scale, 1)); line-height: 1.8; color: var(--muted); }
 .food-logger .recommendation-meal { margin-top: 20px; padding: 24px; border: 0; border-radius: 22px; }
 .food-logger .logger-selection { max-width: 760px; margin: 22px auto 0; border: 0; padding: 28px; border-radius: var(--card-radius); box-shadow: none; }
 .food-logger .logger-selected-summary { background: #edf4e5; }
@@ -111,23 +111,23 @@
 @media (max-width: 767px) {
   .food-logger { padding: 24px 16px; }
   .logger-heading { flex-wrap: wrap; gap: 16px; margin-bottom: 22px; }
-  .logger-heading h1 { font-size: 27px; }
-  .logger-heading > div > p:last-child { font-size: 12px; }
+  .logger-heading h1 { font-size: calc(27px * var(--text-scale, 1)); }
+  .logger-heading > div > p:last-child { font-size: calc(12px * var(--text-scale, 1)); }
   .logger-date > span { display: inline; }
   .logger-date { padding: 2px 10px; border-radius: 999px; background: white; border: 1px solid var(--line); }
   .app-shell .food-logger .logger-date input { border: 0; padding: 7px; }
   .logger-tabs { padding: 5px; gap: 3px; border-radius: 18px; margin-bottom: 20px; }
-  .logger-tabs button { min-height: 49px; font-size: 12px; gap: 6px; }
+  .logger-tabs button { min-height: 49px; font-size: calc(12px * var(--text-scale, 1)); gap: 6px; }
   .logger-tabs .nt-icon { width: 17px; height: 17px; }
   .logger-categories { gap: 7px; }
-  .logger-categories button { padding: 8px 15px; font-size: 12px; }
-  .app-shell .food-logger #food-search { min-height: 56px; font-size: 13px; padding-left: 46px; }
+  .logger-categories button { padding: 8px 15px; font-size: calc(12px * var(--text-scale, 1)); }
+  .app-shell .food-logger #food-search { min-height: 56px; font-size: calc(13px * var(--text-scale, 1)); padding-left: 46px; }
   .logger-search-box > .nt-icon { left: 17px; top: 18px; }
   .logger-discovery { display: flex; flex-direction: column; gap: 20px; }
   .logger-recommendations, .logger-catalog { width: 100%; }
   .logger-catalog, .food-logger .food-recommendations { border-radius: 24px; padding: 20px; }
   .food-logger .recommendation-heading { align-items: flex-start; margin-bottom: 22px; gap: 12px; }
-  .food-logger .recommendation-heading h3 { font-size: 19px; }
+  .food-logger .recommendation-heading h3 { font-size: calc(19px * var(--text-scale, 1)); }
   .food-logger .recommendation-heading > .nt-icon { width: 36px; height: 36px; padding: 8px; }
   .food-logger .recommendation-controls { grid-template-columns: minmax(0, 1fr); gap: 15px; }
   .food-logger .recommendation-list { grid-template-columns: minmax(0, 1fr); gap: 15px; }
@@ -143,7 +143,7 @@
 }
 @media (max-width: 359px) {
   .food-logger { padding-inline: 12px; }
-  .logger-tabs button { font-size: 11px; gap: 4px; }
+  .logger-tabs button { font-size: calc(11px * var(--text-scale, 1)); gap: 4px; }
   .logger-tabs .nt-icon { width: 14px; height: 14px; }
   .logger-categories button { padding-inline: 11px; }
   .logger-catalog, .food-logger .food-recommendations { padding: 16px; }
